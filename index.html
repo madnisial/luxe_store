@@ -13,8 +13,10 @@
 </head>
 <body class="bg-slate-50 text-slate-900 overflow-x-hidden w-full">
 
+  <!-- Loader -->
   <div id="loader-wrapper"><div class="loader-spinner"></div><div class="text-3xl font-black tracking-tighter text-slate-900 mt-4 animate-pulse"><span class="dynamic-sitename">LUXE</span><span class="text-orange-600">.</span></div></div>
 
+  <!-- Notification System -->
   <div class="notif-trigger group" onclick="toggleNotif()">
       <div class="w-14 h-14 md:w-16 md:h-16 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl group-hover:bg-orange-600 transition-all relative">
           <i class="fa-solid fa-bell text-xl"></i>
@@ -29,6 +31,7 @@
       <div id="notif-feed" class="space-y-4 custom-scrollbar overflow-y-auto max-h-[75vh]"></div>
   </div>
 
+  <!-- Top Navbar -->
   <nav class="fixed top-0 inset-x-0 z-[1010] glass px-4 sm:px-8 md:px-12 py-4 flex justify-between items-center shadow-sm">
     <div class="font-black text-2xl md:text-3xl tracking-tighter cursor-pointer text-slate-900" onclick="location.reload()"><span class="dynamic-sitename">LUXE</span><span class="text-orange-600">.</span></div>
     
@@ -67,7 +70,7 @@
           <a href="#offers" onclick="toggleMobileMenu()" class="text-orange-500 hover:text-orange-600">Special Offers</a>
           <a href="#products" onclick="filterByCategory('All'); toggleMobileMenu()" class="hover:text-orange-600">All Jewelry</a>
           <a href="#contact" onclick="toggleMobileMenu()" class="hover:text-orange-600">Contact Support</a>
-          <button onclick="checkAdminAccess(); toggleMobileMenu()" class="w-full max-w-xs mx-auto bg-slate-100 text-slate-600 py-3.5 rounded-xl font-black text-sm mt-4"><i class="fa-solid fa-lock mr-2"></i> ADMIN PORTAL</button>
+          <button onclick="checkAdminAccess()" class="w-full max-w-xs mx-auto bg-slate-100 text-slate-600 py-3.5 rounded-xl font-black text-sm mt-4"><i class="fa-solid fa-lock mr-2"></i> ADMIN PORTAL</button>
       </div>
   </div>
 
@@ -90,15 +93,27 @@
           </div>
       </section>
 
-      <section id="offers" class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto reveal w-full">
-          <div class="bg-slate-900 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 flex flex-col md:flex-row items-center justify-between text-white shadow-xl relative overflow-hidden text-center md:text-left w-full">
-              <div id="offer-bg" class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1599643478518-a854e5da47f7?q=80&w=1000')] bg-cover bg-center opacity-20"></div>
-              <div class="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
-              <div class="relative z-10 md:w-2/3">
-                  <span id="offer-badge" class="bg-orange-500 text-white font-black px-4 py-1 rounded-full text-[10px] uppercase tracking-widest mb-4 inline-block shadow-lg">Limited Time Deal</span>
-                  <h2 id="offer-title" class="text-3xl md:text-5xl font-black mb-3 tracking-tighter text-white">Bridal Set Collection <br><span class="text-orange-400 text-2xl md:text-3xl">Flat 30% Off</span></h2>
-                  <p id="offer-desc" class="text-slate-300 text-sm md:text-base mb-6 max-w-md mx-auto md:mx-0">Elevate your special day with our timeless and exclusive bridal jewelry sets.</p>
-                  <button onclick="document.getElementById('products').scrollIntoView()" class="bg-white text-slate-900 px-6 py-3.5 rounded-full font-black text-xs hover:bg-orange-500 hover:text-white transition-colors shadow-xl">SHOP THE SALE <i class="fa-solid fa-arrow-right ml-2"></i></button>
+      <!-- 🔥 ULTRA-MODERN OFFERS SECTION -->
+      <section id="offers" class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto reveal w-full mt-4">
+          <div class="relative rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden shadow-2xl group flex flex-col md:flex-row min-h-[450px] md:min-h-[550px]">
+              <div id="offer-bg" class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1605100804763-247f6612d54e?q=80&w=1000')] bg-cover bg-center transition-transform duration-1000 group-hover:scale-105"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent md:bg-gradient-to-r md:from-slate-900 md:via-slate-900/60 md:to-transparent"></div>
+
+              <div class="relative z-10 p-6 sm:p-10 md:p-16 flex flex-col justify-center w-full md:w-[65%] lg:w-[55%] h-full mt-auto md:mt-0">
+                  <div class="backdrop-blur-xl bg-white/5 border border-white/10 p-8 md:p-10 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+                      <div class="flex items-center gap-3 mb-5">
+                          <span class="relative flex h-3 w-3">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                          </span>
+                          <span id="offer-badge" class="text-orange-400 font-black text-[10px] md:text-xs uppercase tracking-[0.2em]">Summer Vault Deal</span>
+                      </div>
+                      <h2 id="offer-title" class="text-3xl sm:text-4xl md:text-5xl font-black mb-4 tracking-tighter text-white leading-tight">The Royal Emerald Collection</h2>
+                      <p id="offer-desc" class="text-slate-300 text-sm md:text-base mb-8 font-medium leading-relaxed max-w-md">FLAT 40% OFF! Experience the allure of meticulously handcrafted emeralds. A timeless investment for your unforgettable moments.</p>
+                      <button onclick="document.getElementById('products').scrollIntoView()" class="w-full sm:w-auto bg-orange-500 text-white px-8 py-4 rounded-2xl font-black text-xs hover:bg-white hover:text-slate-900 transition-all duration-300 shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:shadow-xl hover:-translate-y-1">
+                          CLAIM OFFER <i class="fa-solid fa-arrow-right ml-2"></i>
+                      </button>
+                  </div>
               </div>
           </div>
       </section>
@@ -123,7 +138,7 @@
       <section id="contact" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto reveal w-full">
           <div class="bg-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-16 shadow-xl border border-slate-100 flex flex-col lg:flex-row gap-10 lg:gap-16 items-center w-full">
               <div class="flex-1 w-full text-center lg:text-left">
-                  <span class="text-orange-500 font-black text-xs uppercase tracking-widest mb-2 block">Reach Out</span>
+                  <span class="text-orange-500 font-black text-xs uppercase tracking-widest mb-1 block">Reach Out</span>
                   <h2 class="text-3xl md:text-5xl font-black text-slate-900 mb-4 tracking-tighter">Get in Touch.</h2>
                   <p class="text-slate-500 text-sm md:text-base mb-8 max-w-md mx-auto lg:mx-0">Have a question about our collections or orders? Our premium support team is here for you.</p>
                   <div class="space-y-4 inline-block text-left w-full max-w-sm mx-auto lg:mx-0">
@@ -161,20 +176,29 @@
       </footer>
   </div> 
 
+  <!-- 🔒 SECURE OTP ADMIN MODAL -->
   <div id="admin-lock" class="modal-overlay items-center justify-center z-[3100]">
       <div class="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] w-full max-w-sm text-center shadow-2xl border border-slate-100 mx-4 slide-up">
-          <div class="w-16 h-16 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"><i class="fa-solid fa-shield-halved text-2xl md:text-3xl"></i></div>
-          <h2 class="text-xl md:text-2xl font-black mb-2 tracking-tighter">Admin Gateway</h2>
-          <form onsubmit="verifyAdminPassword(event)">
+          <div class="w-16 h-16 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"><i class="fa-solid fa-shield-halved text-2xl md:text-3xl"></i></div>
+          <h2 class="text-xl md:text-2xl font-black mb-1 tracking-tighter">Admin Gateway</h2>
+          <p class="text-[10px] md:text-xs text-slate-500 font-bold mb-6">Secure Email Authentication</p>
+
+          <form id="otp-request-form" onsubmit="requestAdminOTP(event)">
               <div class="relative mb-5">
-                  <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                  <input type="password" id="admin-pass-only" required placeholder="Encrypted Password" class="w-full py-3.5 pl-10 pr-10 bg-slate-50 border rounded-2xl font-bold outline-none focus:border-slate-900 transition-all text-sm">
-                  <button type="button" onclick="toggleVisibility('admin-pass-only', 'eye-icon-login')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-500 transition-colors">
-                      <i id="eye-icon-login" class="fa-solid fa-eye"></i>
-                  </button>
+                  <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                  <input type="email" id="admin-email-input" required placeholder="Enter Admin Email" class="w-full py-3.5 pl-10 pr-4 bg-slate-50 border rounded-2xl font-bold outline-none focus:border-orange-500 transition-all text-sm">
               </div>
-              <button type="submit" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black hover:bg-orange-600 transition-colors shadow-lg active:scale-95 text-sm">AUTHORIZE</button>
+              <button type="submit" id="btn-req-otp" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black hover:bg-orange-600 transition-colors shadow-lg active:scale-95 text-sm">SEND OTP</button>
           </form>
+
+          <form id="otp-verify-form" onsubmit="verifyAdminOTP(event)" class="hidden">
+              <div class="relative mb-5">
+                  <i class="fa-solid fa-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                  <input type="text" id="admin-otp-input" required placeholder="6-Digit OTP" maxlength="6" class="w-full py-3.5 pl-10 pr-4 bg-slate-50 border border-green-200 rounded-2xl font-black outline-none focus:border-green-500 transition-all text-lg text-center tracking-[0.5em] text-slate-800">
+              </div>
+              <button type="submit" id="btn-ver-otp" class="w-full bg-green-600 text-white py-3.5 rounded-xl font-black hover:bg-green-700 transition-colors shadow-lg active:scale-95 text-sm">VERIFY & LOGIN</button>
+          </form>
+
           <button onclick="closeModal('admin-lock')" class="w-full mt-3 py-3 bg-white border text-xs font-bold text-slate-500 rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
       </div>
   </div>
@@ -245,7 +269,6 @@
   </div>
 
   <section id="admin-os" class="hidden bg-slate-50 min-h-screen relative z-[2000] flex-col lg:flex-row w-full">
-    
     <div class="lg:hidden bg-slate-900 text-white px-5 py-4 flex justify-between items-center sticky top-0 shadow-md border-b border-white/10 z-[2010] w-full">
         <div class="text-lg font-black tracking-tighter"><span class="dynamic-sitename">LUXE</span><span class="text-orange-500">.</span> Admin</div>
         <div class="flex items-center gap-3">
@@ -259,22 +282,17 @@
             <h2 class="text-2xl font-black tracking-tighter"><span class="dynamic-sitename">LUXE</span><span class="text-orange-500">.</span> OS</h2>
             <button onclick="toggleAdminSidebar()" class="lg:hidden w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-slate-400 text-xs"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        
         <div class="flex-1 py-5 px-3 space-y-1.5 font-bold text-xs md:text-sm">
             <button id="btn-tab-profile" onclick="switchSidebarTab('profile')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-user-edit w-5 text-center"></i> Edit Profile</button>
             <button id="btn-tab-addprod" onclick="switchSidebarTab('addprod')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-gem w-5 text-center"></i> Add Jewelry</button>
             <button id="btn-tab-offer" onclick="switchSidebarTab('offer')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-bullhorn w-5 text-center"></i> Offer Banner</button>
-            
             <button id="btn-tab-social" onclick="switchSidebarTab('social')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-hashtag w-5 text-center"></i> Social Links</button>
-            <button id="btn-tab-security" onclick="switchSidebarTab('security')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-key w-5 text-center"></i> Security (Pass)</button>
-
             <button id="btn-tab-details" onclick="switchSidebarTab('details')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-address-card w-5 text-center"></i> Details</button>
             <button id="btn-tab-receipts" onclick="switchSidebarTab('receipts')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-file-invoice w-5 text-center"></i> Receipts</button>
             <button id="btn-tab-payment" onclick="switchSidebarTab('payment')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-money-check-dollar w-5 text-center"></i> Payments</button>
             <button id="btn-tab-contact" onclick="switchSidebarTab('contact')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-address-book w-5 text-center"></i> Contact Info</button>
             <button id="btn-tab-inventory" onclick="switchSidebarTab('inventory')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Inventory</button>
         </div>
-        
         <div class="p-5 border-t border-white/10 shrink-0">
             <button onclick="logoutAdmin()" class="w-full bg-red-500/10 text-red-500 py-3 rounded-xl font-black text-xs hover:bg-red-500 hover:text-white transition-all shadow-sm"><i class="fa-solid fa-power-off mr-2"></i> LOGOUT</button>
         </div>
@@ -339,17 +357,6 @@
                         <input type="text" id="conf-social-yt" placeholder="Paste full channel URL" class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-xs md:text-sm font-bold outline-none">
                     </div>
                     <button type="submit" class="w-full py-3.5 bg-slate-900 text-white font-black text-xs md:text-sm rounded-xl hover:bg-blue-600 transition-colors">Update Social Links</button>
-                </form>
-            </div>
-
-            <div id="view-security" class="admin-view hidden">
-                <h3 class="font-black text-lg md:text-xl mb-5 text-slate-900 border-b pb-3"><i class="fa-solid fa-key text-rose-500 mr-2"></i> Security Settings</h3>
-                <form onsubmit="saveSystemConfig(event, 'security')" class="max-w-xl space-y-4">
-                    <div>
-                        <label class="text-[10px] md:text-xs font-bold text-rose-500 mb-1 block">New Admin Password</label>
-                        <input type="text" id="conf-admin-pass" required placeholder="Enter new strong password" class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 font-bold text-xs md:text-sm outline-none focus:border-rose-500">
-                    </div>
-                    <button type="submit" class="w-full py-3.5 bg-rose-600 text-white font-black text-xs md:text-sm rounded-xl hover:bg-rose-700 transition-colors">Update Password</button>
                 </form>
             </div>
 
