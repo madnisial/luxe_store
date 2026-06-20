@@ -10,13 +10,13 @@ let allProducts = [], cart = [], orders = [], notifs = [];
 let currentCategory = "All";
 
 let sysConfig = {
-    id: 'SYSTEM_CONFIG', name: 'System', price: 0, cat: 'System',
-    siteName: 'LUXE',
-    adminPass: 'THV4ZVN0b3JlQWRtaW4xMjNA', // Default Base64 key for LuxeStoreAdmin123@
-    offerBadge: 'Limited Time Deal', offerTitle: 'Bridal Set Collection', offerDesc: 'Elevate your special day with our bridal jewelry sets.',
-    offerImg: 'https://images.unsplash.com/photo-1599643478518-a854e5da47f7?q=80&w=1000',
+    id: 'SYSTEM_CONFIG', name: 'System', price: 0, cat: 'System', siteName: 'LUXE',
+    offerBadge: 'Summer Vault Deal', 
+    offerTitle: 'The Royal Emerald Collection', 
+    offerDesc: 'FLAT 40% OFF! Experience the allure of meticulously handcrafted emeralds. A timeless investment for your unforgettable moments.',
+    offerImg: 'https://images.unsplash.com/photo-1605100804763-247f6612d54e?q=80&w=1000',
     payEasypaisa: '0300 1234567', payJazzcash: '0300 1234567', payBank: 'Meezan Bank: 0123456789',
-    contactPhone: '+92 300 1234567', contactEmail: 'support@luxe.com', contactAddress: 'Faisalabad, Pakistan',
+    contactPhone: '+92 300 1234567', contactEmail: 'madnisialpro@gmail.com', contactAddress: 'Faisalabad, Pakistan',
     socialFacebook: '', socialInstagram: '', socialWhatsapp: '', socialTiktok: '', socialYoutube: ''
 };
 
@@ -42,6 +42,14 @@ function hideLoader() {
     }
 }
 
+// 🔥 SECURE HEADERS FUNCTION
+function getSecureHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-Admin-Token': sessionStorage.getItem('admin_session_token') || ''
+    };
+}
+
 // --- DATA ADAPTERS ---
 async function loadCloudflareData() {
     try {
@@ -51,8 +59,6 @@ async function loadCloudflareData() {
             const dbConfig = fetchedProducts.find(p => p.id === 'SYSTEM_CONFIG');
             if(dbConfig) { 
                 sysConfig = { ...sysConfig, ...dbConfig }; 
-                // Ensure password doesn't get wiped if missing on DB
-                if (!sysConfig.adminPass) { sysConfig.adminPass = 'THV4ZVN0b3JlQWRtaW4xMjNA'; }
                 localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
             }
             applySystemConfigToUI();
@@ -60,7 +66,22 @@ async function loadCloudflareData() {
             applyFilters(); renderAdminProducts(); 
         }
         
-        const orderRes = await fetch(`${CLOUDFLARE_API_URL}/orders`, { cache: "no-store" });
+        // Only fetch orders if verified
+        if (sessionStorage.getItem('admin_session_token')) {
+            loadCloudflareOrdersSecure();
+        }
+    } catch(err) { console.log(err); }
+}
+
+async function loadCloudflareOrdersSecure() {
+    try {
+        const orderRes = await fetch(`${CLOUDFLARE_API_URL}/orders`, { 
+            cache: "no-store", 
+            headers: getSecureHeaders() 
+        });
+        
+        if (orderRes.status === 401) { logoutAdmin(); return; }
+        
         if (orderRes.ok) { 
             orders = (await orderRes.json()).reverse(); 
             updateDetailsView(); updateReceiptsView();
@@ -188,6 +209,17 @@ window.togglePaymentProof = function() {
 }
 window.copyPaymentNumber = function() { const txt = document.getElementById('pay-number-display').innerText; navigator.clipboard.writeText(txt).then(() => { alert("Copied! ✅"); }); }
 
+function compressImage(dataUrl) {
+    return new Promise((resolve) => {
+        const img = new Image(); img.onload = () => {
+            const canvas = document.createElement('canvas'); const MAX_WIDTH = 500; let width = img.width, height = img.height;
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.5));
+        }; img.src = dataUrl;
+    });
+}
+
 window.submitOrder = async function() {
     const cName = document.getElementById('cust-name').value, cPhone = document.getElementById('cust-phone').value, cCity = document.getElementById('cust-city').value, cAddress = document.getElementById('cust-address').value;
     const pMethod = document.getElementById('pay-method').value;
@@ -198,6 +230,7 @@ window.submitOrder = async function() {
         const fileInput = document.getElementById('pay-proof-img');
         if (fileInput.files.length === 0) { alert("Please upload payment screenshot."); return; }
         paymentProofBase64 = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(fileInput.files[0]); });
+        paymentProofBase64 = await compressImage(paymentProofBase64);
     }
     const btn = document.getElementById('confirm-order-btn'); btn.disabled = true; btn.innerText = 'Processing...';
     const orderId = 'LX-' + Math.floor(10000 + Math.random() * 89999);
@@ -219,31 +252,87 @@ window.generateReceiptImageAndDownload = function(order) {
     setTimeout(() => { html2canvas(document.getElementById('receipt-area'), { scale: 2, useCORS: true }).then(canvas => { const link = document.createElement('a'); link.download = `Receipt-${order.id}.png`; link.href = canvas.toDataURL('image/png'); link.click(); paidBadge.style.display = 'none'; }); }, 150);
 }
 
-// --- INTERACTION SYNCERS ---
+// --- NOTIFICATIONS & UI TRIGGERS ---
+window.pushNotif = function(msg) { notifs.unshift({ msg }); updateNotifUI(); }
+window.updateNotifUI = function() { const feed = document.getElementById('notif-feed'); if(notifs.length === 0) { feed.innerHTML = `<p class="text-slate-400 text-sm italic text-center py-10">No alerts...</p>`; return; } document.getElementById('notif-dot').style.display = 'block'; feed.innerHTML = notifs.map(n => `<div class="bg-slate-50 p-3 rounded-xl border shadow-sm text-xs font-bold text-slate-700">${n.msg}</div>`).join(''); }
+window.toggleNotif = function() { document.getElementById('notif-sidebar').classList.toggle('open'); document.getElementById('notif-dot').style.display = 'none'; }
+
 window.toggleMobileMenu = function() { 
     const menu = document.getElementById('mobile-menu');
     menu.classList.toggle('hidden'); menu.classList.toggle('flex');
 }
-window.checkAdminAccess = function() { 
-    const mm = document.getElementById('mobile-menu'); if (mm && mm.classList.contains('flex')) { toggleMobileMenu(); } openModal('admin-lock'); 
-}
-window.toggleVisibility = function(id, icon) { const input = document.getElementById(id); const eye = document.getElementById(icon); if (input.type === "password") { input.type = "text"; eye.classList.replace("fa-eye", "fa-eye-slash"); } else { input.type = "password"; eye.classList.replace("fa-eye-slash", "fa-eye"); } }
 
-// 🔥 BULLETPROOF PASS VERIFICATION WITH OVERRIDE BACKDOOR
-window.verifyAdminPassword = function(e) {
-    e.preventDefault(); const inputPass = document.getElementById('admin-pass-only').value;
+// ==========================================
+// 🛡️ DYNAMIC EMAIL AUTH PIPELINE (OTP)
+// ==========================================
+window.checkAdminAccess = function() { 
+    const mm = document.getElementById('mobile-menu'); if (mm && mm.classList.contains('flex')) { toggleMobileMenu(); } 
     
-    // Master Bypass Check to prevent database locks
-    if(btoa(inputPass) === sysConfig.adminPass || inputPass === "LuxeStoreAdmin123@") {
-        closeModal('admin-lock'); 
+    if (sessionStorage.getItem('admin_session_token')) {
+        loadCloudflareOrdersSecure();
         document.getElementById('admin-os').classList.remove('hidden'); document.getElementById('admin-os').classList.add('flex');
         document.getElementById('main-site-content').style.display = 'none'; document.querySelector('nav').style.display = 'none';
-        document.getElementById('admin-pass-only').value = '';
         switchSidebarTab('details');
-    } else { alert("❌ Access Denied! Password Incorrect."); }
+        return;
+    }
+    
+    document.getElementById('otp-request-form').classList.remove('hidden');
+    document.getElementById('otp-verify-form').classList.add('hidden');
+    openModal('admin-lock'); 
 }
 
-window.logoutAdmin = function() { location.reload(); }
+window.requestAdminOTP = async function(e) {
+    e.preventDefault();
+    const emailInput = document.getElementById('admin-email-input').value;
+    const btn = document.getElementById('btn-req-otp'); btn.disabled = true; btn.innerText = 'Sending PIN...';
+
+    try {
+        const res = await fetch(`${CLOUDFLARE_API_URL}/send-otp`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ email: emailInput }) 
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            document.getElementById('otp-request-form').classList.add('hidden');
+            document.getElementById('otp-verify-form').classList.remove('hidden');
+            alert("OTP successfully sent to madnisialpro@gmail.com! Please check your inbox or Spam folder."); 
+        } else { 
+            alert(`❌ Access Denied: ${data.error}`); 
+        }
+    } catch (e) { alert("Server connection failed."); }
+    finally { btn.disabled = false; btn.innerText = 'SEND OTP'; }
+}
+
+window.verifyAdminOTP = async function(e) {
+    e.preventDefault();
+    const otpInput = document.getElementById('admin-otp-input').value;
+    const btn = document.getElementById('btn-ver-otp'); btn.disabled = true; btn.innerText = 'Verifying...';
+
+    try {
+        const res = await fetch(`${CLOUDFLARE_API_URL}/verify-otp`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ otp: otpInput }) 
+        });
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+            sessionStorage.setItem('admin_session_token', data.token);
+            closeModal('admin-lock');
+            document.getElementById('admin-os').classList.remove('hidden'); document.getElementById('admin-os').classList.add('flex');
+            document.getElementById('main-site-content').style.display = 'none'; document.querySelector('nav').style.display = 'none';
+            document.getElementById('admin-otp-input').value = '';
+
+            loadCloudflareOrdersSecure();
+            switchSidebarTab('details');
+        } else { alert(`❌ Invalid Code: ${data.error}`); }
+    } catch (e) { alert("Verification request failed."); }
+    finally { btn.disabled = false; btn.innerText = 'VERIFY & LOGIN'; }
+}
+
+window.logoutAdmin = function() { sessionStorage.removeItem('admin_session_token'); location.reload(); }
 window.toggleAdminSidebar = function() { document.getElementById('admin-sidebar-container').classList.toggle('-translate-x-full'); }
 
 window.switchSidebarTab = function(tabId) {
@@ -255,7 +344,7 @@ window.switchSidebarTab = function(tabId) {
     if(window.innerWidth < 1024) { document.getElementById('admin-sidebar-container').classList.add('-translate-x-full'); }
 }
 
-// 🔥 SYSTEM DYNAMIC MASTER CONFIG CONFIGURATION ENGINE
+// --- SECURE SAVE CONFIG ENGINE ---
 window.saveSystemConfig = async function(e, section) {
     e.preventDefault(); const btn = e.target.querySelector('button[type="submit"]'); const txt = btn.innerHTML; btn.innerHTML = 'Saving...'; btn.disabled = true;
     if (section === 'profile') { sysConfig.siteName = document.getElementById('conf-site-name').value; }
@@ -268,35 +357,27 @@ window.saveSystemConfig = async function(e, section) {
         sysConfig.socialTiktok = document.getElementById('conf-social-tt').value;
         sysConfig.socialYoutube = document.getElementById('conf-social-yt').value;
     }
-    else if (section === 'security') {
-        const newPass = document.getElementById('conf-admin-pass').value;
-        if(newPass.length < 5) { alert("Password must be at least 5 characters!"); btn.innerHTML = txt; btn.disabled = false; return; }
-        sysConfig.adminPass = btoa(newPass); 
-        document.getElementById('conf-admin-pass').value = ''; 
-    }
     else if (section === 'offer') {
         sysConfig.offerBadge = document.getElementById('conf-offer-badge').value; sysConfig.offerTitle = document.getElementById('conf-offer-title').value; sysConfig.offerDesc = document.getElementById('conf-offer-desc').value;
         const fileInput = document.getElementById('conf-offer-img');
         if (fileInput.files.length > 0) {
             sysConfig.offerImg = await new Promise((resolve) => {
-                const r = new FileReader(); r.onload = (ev) => {
-                    const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 400; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0,600,400); resolve(canvas.toDataURL('image/jpeg',0.5)); }; img.src = ev.target.result;
-                }; r.readAsDataURL(fileInput.files[0]);
+                const r = new FileReader(); r.onload = (ev) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 400; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0,600,400); resolve(canvas.toDataURL('image/jpeg',0.5)); }; img.src = ev.target.result; }; r.readAsDataURL(fileInput.files[0]);
             });
         }
     }
     try { 
-        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sysConfig) }); 
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) }); 
         localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); 
         applySystemConfigToUI(); 
-        if(section === 'security') { alert("Password Changed Successfully! Please remember it."); } else { alert("Updated! ✅"); }
+        alert("Updated Successfully! ✅");
     } catch(err) { alert("Error saving configurations."); } finally { btn.innerHTML = txt; btn.disabled = false; }
 }
 
-// --- ADMIN DASHBOARD CARD INJECTORS ---
+// --- SECURE UI CARD RENDERERS ---
 window.updateDetailsView = function() {
     const target = document.getElementById('details-log'); if(!target) return;
-    if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-xs font-bold text-center py-6">No records.</p>`; return; }
+    if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-[10px] md:text-xs font-bold text-center py-6">No records.</p>`; return; }
     target.innerHTML = orders.map(o => `
         <div class="bg-slate-50 p-4 rounded-2xl border text-xs space-y-2">
             <div class="flex justify-between items-start flex-wrap gap-2">
@@ -304,6 +385,7 @@ window.updateDetailsView = function() {
                     <h4 class="font-black text-sm text-slate-900 mt-2">Client: ${o.customer}</h4>
                     <p class="text-slate-500 font-bold"><i class="fa-solid fa-phone"></i> ${o.phone} | City: ${o.city}</p>
                     <p class="text-slate-400">Addr: ${o.address}</p>
+                    <p class="text-slate-600 font-bold mt-1">Payment: ${o.paymentMethod || 'COD'}</p>
                 </div>
                 <div class="text-right"><p class="text-slate-400 font-medium">${o.date.split(',')[0]}</p>
                     ${o.status === 'Paid' ? `<span class="text-green-600 font-black bg-green-100 px-2 py-0.5 rounded-md inline-block mt-2">✔ PAID</span>` : `<button onclick="markOrderPaid('${o.id}')" class="bg-green-600 text-white font-black px-3 py-1 rounded-lg mt-2 shadow-sm">Mark Paid</button>`}
@@ -317,6 +399,7 @@ window.updateDetailsView = function() {
         </div>
     `).join('');
 }
+
 window.updateReceiptsView = function() {
     const target = document.getElementById('receipts-log'); if(!target) return;
     if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-xs font-bold text-center py-6">No records.</p>`; return; }
@@ -329,10 +412,12 @@ window.updateReceiptsView = function() {
         </div>
     `).join('');
 }
-window.markOrderPaid = async function(id) { const idx = orders.findIndex(x => String(x.id) === String(id)); if(idx !== -1) { orders[idx].status = "Paid"; updateDetailsView(); updateReceiptsView(); try { await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE' }); await fetch(`${CLOUDFLARE_API_URL}/orders`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(orders[idx]) }); } catch(e) {} } }
+
+// --- SECURE UTILITIES ---
+window.markOrderPaid = async function(id) { const idx = orders.findIndex(x => String(x.id) === String(id)); if(idx !== -1) { orders[idx].status = "Paid"; updateDetailsView(); updateReceiptsView(); try { await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); await fetch(`${CLOUDFLARE_API_URL}/orders`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(orders[idx]) }); } catch(e) {} } }
 window.downloadCustomerReceipt = function(id) { const match = orders.find(x => String(x.id) === String(id)); if(match) { generateReceiptImageAndDownload(match); } }
-window.downloadPaymentProof = function(id) { const o = orders.find(x => String(x.id) === String(id)); if(o && o.paymentProof) { const link = document.createElement('a'); link.href = o.paymentProof; link.download = `Luxe-Proof-${o.id}.jpg`; link.click(); } }
-window.removeCustomerRecord = async function(id) { if(confirm("Remove permanently?")) { orders = orders.filter(x => String(x.id) !== String(id)); updateDetailsView(); updateReceiptsView(); await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE' }); } }
+window.downloadPaymentProof = function(id) { const o = orders.find(x => String(x.id) === String(id)); if(o && o.paymentProof) { const link = document.createElement('a'); link.href = o.paymentProof; link.download = `Proof-${o.id}.jpg`; link.click(); } }
+window.removeCustomerRecord = async function(id) { if(confirm("Remove permanently?")) { orders = orders.filter(x => String(x.id) !== String(id)); updateDetailsView(); updateReceiptsView(); await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); } }
 window.searchDetails = function() { const val = document.getElementById('search-details-n').value.toLowerCase(); updateDetailsView(orders.filter(o => o.phone.includes(val) || o.customer.toLowerCase().includes(val) || o.id.toLowerCase().includes(val))); }
 window.searchReceipts = function() { const val = document.getElementById('search-receipts-id').value.toLowerCase(); updateReceiptsView(orders.filter(o => o.id.toLowerCase().includes(val))); }
 window.downloadCustomerDetailsImage = function(id) {
@@ -340,10 +425,9 @@ window.downloadCustomerDetailsImage = function(id) {
     document.getElementById('details-export-content').innerHTML = `<p><strong>ID:</strong> ${o.id}</p><p><strong>Client:</strong> ${o.customer}</p><p><strong>Phone:</strong> ${o.phone}</p><p><strong>City:</strong> ${o.city}</p><p><strong>Address:</strong> ${o.address}</p><p><strong>Total:</strong> ${o.total}</p>`;
     setTimeout(() => { html2canvas(document.getElementById('details-export-area'), { scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = `Client-${o.id}.png`; link.href = canvas.toDataURL(); link.click(); }); }, 150);
 }
-window.addNewProduct = async function(e) { e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const file = document.getElementById('new-p-img-file').files[0]; const reader = new FileReader(); reader.onload = function(event) { const img = new Image(); img.onload = async function() { const canvas = document.createElement('canvas'); canvas.width = 500; canvas.height = 400; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0,500,400); const newProduct = { id: Date.now().toString(), name: document.getElementById('new-p-name').value, price: parseInt(document.getElementById('new-p-price').value), cat: document.getElementById('new-p-cat').value, img: canvas.toDataURL('image/jpeg', 0.6) }; await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(newProduct) }); loadCloudflareData(); document.getElementById('add-product-form').reset(); alert("Published! 💎"); }; img.src = event.target.result; }; reader.readAsDataURL(file); }
-window.deleteProduct = async function(id) { if(confirm("Delete item?")) { await fetch(`${CLOUDFLARE_API_URL}/products/${id}`, { method: 'DELETE' }); loadCloudflareData(); } }
-window.renderAdminProducts = function() { const log = document.getElementById('admin-product-log'); if(!log) return; log.innerHTML = allProducts.map(p => `<div class="bg-slate-50 p-2 md:p-3 rounded-xl flex justify-between items-center border text-xs font-bold"><div class="flex items-center gap-3"><img src="${p.img}" class="w-10 h-10 object-cover rounded"><div><h4>${p.name}</h4><span class="text-orange-600">Rs. ${p.price}</span></div></div><button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button></div>`).join(''); }
+window.addNewProduct = async function(e) { e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const file = document.getElementById('new-p-img-file').files[0]; const reader = new FileReader(); reader.onload = function(event) { const img = new Image(); img.onload = async function() { const canvas = document.createElement('canvas'); canvas.width = 500; canvas.height = 400; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0,500,400); const newProduct = { id: Date.now().toString(), name: document.getElementById('new-p-name').value, price: parseInt(document.getElementById('new-p-price').value), cat: document.getElementById('new-p-cat').value, img: canvas.toDataURL('image/jpeg', 0.6) }; await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(newProduct) }); loadCloudflareData(); document.getElementById('add-product-form').reset(); alert("Published! 💎"); }; img.src = event.target.result; }; reader.readAsDataURL(file); }
+window.deleteProduct = async function(id) { if(confirm("Delete item?")) { await fetch(`${CLOUDFLARE_API_URL}/products/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); loadCloudflareData(); } }
+window.renderAdminProducts = function() { const log = document.getElementById('admin-product-log'); if(!log) return; log.innerHTML = allProducts.map(p => `<div class="bg-slate-50 p-2 md:p-3 rounded-xl flex justify-between items-center border text-[10px] md:text-xs font-bold"><div class="flex items-center gap-2 md:gap-3"><img src="${p.img}" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded"><div><h4>${p.name}</h4><span class="text-orange-600">Rs. ${p.price}</span></div></div><button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button></div>`).join(''); }
 
-// Modals
 window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
 window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
