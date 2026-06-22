@@ -1,7 +1,7 @@
 // ==========================================
 // 1. CLOUDFLARE CONFIGURATION & SECURITY
 // ==========================================
-const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // UPDATE WITH YOUR URL
+const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // TERA WORKER LINK
 
 // ==========================================
 // 2. STATE & GLOBAL CONFIGURATION
@@ -21,7 +21,8 @@ let sysConfig = {
     discountPercent: 0,
     receiverEmail: 'madnisialpro@gmail.com',
     customSocials: [], 
-    payEasypaisa: '', payJazzcash: '', bankName: '', bankNumber: ''
+    payEasypaisa: '', payJazzcash: '', bankName: '', bankNumber: '',
+    customCategories: ['Payal'] // 🔥 CUSTOM CATEGORY ARRAY STARTING WITH "PAYAL"
 };
 
 const savedConfig = localStorage.getItem('luxe_sysConfig');
@@ -137,17 +138,46 @@ function applySystemConfigToUI() {
     }
 }
 
+// 🔥 ADD CUSTOM CATEGORY FUNCTION
+window.addCustomCategory = async function(e) {
+    if(e) e.preventDefault();
+    const input = document.getElementById('custom-cat-input');
+    const newCat = input.value.trim();
+    if(!newCat) return alert("Enter category name!");
+    
+    if(!sysConfig.customCategories) sysConfig.customCategories = ['Payal'];
+    if(sysConfig.customCategories.includes(newCat)) return alert("Category already exists!");
+
+    const btn = document.getElementById('add-cat-btn');
+    const ogText = btn.innerHTML;
+    btn.innerHTML = '...'; btn.disabled = true;
+
+    sysConfig.customCategories.push(newCat);
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
+        input.value = '';
+        updateCategoriesUI();
+        alert(`Category "${newCat}" added successfully!`);
+    } catch(err) {
+        alert("Error adding category.");
+    } finally {
+        btn.innerHTML = ogText; btn.disabled = false;
+    }
+}
+
 // 🔥 DYNAMIC CATEGORIES FOR NAVBAR AND ADMIN SELECT
 window.updateCategoriesUI = function() {
-    const defaults = ['Rings', 'Necklaces', 'Bracelets', 'Earrings', 'Watches', 'Sets'];
-    const dynamicCats = [...new Set(allProducts.map(p => p.cat).filter(c => c && c !== 'System' && !defaults.includes(c)))];
+    // Yehi Defaults rahenge
+    const defaults = ['Rings', 'Necklaces & Pendants', 'Bracelets', 'Ear-Rings', 'Watches'];
+    let customCats = sysConfig.customCategories || [];
 
     // 1. Update Navbar
     const navContainer = document.getElementById('dynamic-nav-categories');
     if (navContainer) {
         let navHTML = '';
         defaults.forEach(c => navHTML += `<a href="#" onclick="filterByCategory('${c}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors">${c}</a>`);
-        dynamicCats.forEach(c => navHTML += `<a href="#" onclick="filterByCategory('${c}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors text-orange-700 font-bold">${c}</a>`);
+        customCats.forEach(c => navHTML += `<a href="#" onclick="filterByCategory('${c}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors text-orange-700 font-bold">${c}</a>`);
         navHTML += `<div class="border-t border-slate-100 my-1"></div><a href="#" onclick="filterByCategory('All')" class="block px-6 py-3 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors">View All Jewelry</a>`;
         navContainer.innerHTML = navHTML;
     }
@@ -157,18 +187,10 @@ window.updateCategoriesUI = function() {
     if (adminSelect) {
         let adminHTML = `<option value="" disabled selected>Select Category</option>`;
         defaults.forEach(c => adminHTML += `<option value="${c}">${c}</option>`);
-        dynamicCats.forEach(c => adminHTML += `<option value="${c}">${c}</option>`);
-        adminHTML += `<option value="Custom" class="font-black text-orange-600">+ Add New Category</option>`;
+        customCats.forEach(c => adminHTML += `<option value="${c}">${c}</option>`);
         adminSelect.innerHTML = adminHTML;
     }
 };
-
-window.checkCustomCategory = function() {
-    const select = document.getElementById('new-p-cat');
-    const customInput = document.getElementById('custom-cat-input');
-    if (select.value === 'Custom') { customInput.classList.remove('hidden'); customInput.required = true; customInput.focus(); } 
-    else { customInput.classList.add('hidden'); customInput.required = false; customInput.value = ''; }
-}
 
 // 🔥 ADD CUSTOM SOCIAL LINK (NAME & URL)
 window.addCustomSocial = async function(e) {
@@ -381,7 +403,7 @@ window.toggleAdminSidebar = function() { document.getElementById('admin-sidebar-
 window.switchSidebarTab = function(tabId) {
     document.querySelectorAll('.admin-view').forEach(view => { view.classList.add('hidden'); view.classList.remove('flex'); });
     const activeView = document.getElementById('view-' + tabId);
-    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='mail' || tabId==='social' || tabId==='payment') activeView.classList.add('flex'); }
+    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='mail' || tabId==='social' || tabId==='payment' || tabId==='addprod') activeView.classList.add('flex'); }
     document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.remove('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500'));
     const activeBtn = document.getElementById('btn-tab-' + tabId); if(activeBtn) activeBtn.classList.add('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500');
     if(window.innerWidth < 1024) { document.getElementById('admin-sidebar-container').classList.add('-translate-x-full'); }
@@ -476,15 +498,12 @@ window.downloadCustomerDetailsImage = function(id) {
     setTimeout(() => { html2canvas(document.getElementById('details-export-area'), { scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = `Client-${o.id}.png`; link.href = canvas.toDataURL(); link.click(); }); }, 150);
 }
 
-// 🔥 ADD PRODUCT LOGIC (WITH CUSTOM CATEGORY)
+// 🔥 ADD PRODUCT LOGIC 
 window.addNewProduct = async function(e) { 
     e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const originalText = btn.innerHTML; btn.innerHTML = 'Publishing...';
     
     let finalCategory = document.getElementById('new-p-cat').value;
-    if (finalCategory === 'Custom') {
-        finalCategory = document.getElementById('custom-cat-input').value.trim();
-        if (!finalCategory) { alert("Please type a name for the new category!"); btn.disabled = false; btn.innerHTML = originalText; return; }
-    }
+    if (!finalCategory) { alert("Please select a category!"); btn.disabled = false; btn.innerHTML = originalText; return; }
 
     const file = document.getElementById('new-p-img-file').files[0]; 
     if (!file) { alert("Please select an image first!"); btn.disabled = false; btn.innerHTML = originalText; return; }
@@ -499,7 +518,7 @@ window.addNewProduct = async function(e) {
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height); 
                 const newProduct = { id: Date.now().toString(), name: document.getElementById('new-p-name').value, price: parseInt(document.getElementById('new-p-price').value), cat: finalCategory, img: canvas.toDataURL('image/jpeg', 0.8) }; 
                 await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(newProduct) }); 
-                loadCloudflareData(); document.getElementById('add-product-form').reset(); document.getElementById('custom-cat-input').classList.add('hidden'); alert("Published Successfully! 💎 You can add another one now."); 
+                loadCloudflareData(); document.getElementById('add-product-form').reset(); alert("Published Successfully! 💎 You can add another one now."); 
             } catch (err) { alert("Error publishing product."); } finally { btn.disabled = false; btn.innerHTML = originalText; }
         }; img.src = event.target.result; 
     }; reader.readAsDataURL(file); 
