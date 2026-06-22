@@ -1,7 +1,7 @@
 // ==========================================
-// 1. CLOUDFLARE CONFIGURATION & SECURITY
+// 1. CLOUDFLARE CONFIGURATION
 // ==========================================
-const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // TERA WORKER LINK
+const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // Yahan apna worker URL rakhna
 
 // ==========================================
 // 2. STATE & GLOBAL CONFIGURATION
@@ -19,10 +19,9 @@ let sysConfig = {
     socialFacebook: '', socialInstagram: '', socialWhatsapp: '', socialTiktok: '', socialYoutube: '',
     deliveryCharge: 0,
     discountPercent: 0,
-    receiverEmail: 'madnisialpro@gmail.com',
     customSocials: [], 
-    payEasypaisa: '', payJazzcash: '', bankName: '', bankNumber: '',
-    customCategories: ['Payal'] // 🔥 CUSTOM CATEGORY ARRAY STARTING WITH "PAYAL"
+    paymentMethods: [], 
+    customCategories: ['Payal'] 
 };
 
 const savedConfig = localStorage.getItem('luxe_sysConfig');
@@ -106,17 +105,11 @@ function applySystemConfigToUI() {
         document.getElementById('conf-social-tt').value = sysConfig.socialTiktok || '';
         document.getElementById('conf-social-yt').value = sysConfig.socialYoutube || '';
         
-        document.getElementById('conf-pay-ep').value = sysConfig.payEasypaisa || '';
-        document.getElementById('conf-pay-jc').value = sysConfig.payJazzcash || '';
-        document.getElementById('conf-bank-name').value = sysConfig.bankName || '';
-        document.getElementById('conf-bank-number').value = sysConfig.bankNumber || '';
-
         document.getElementById('conf-delivery').value = sysConfig.deliveryCharge || 0;
         document.getElementById('conf-discount').value = sysConfig.discountPercent || 0;
-        document.getElementById('conf-sys-email').value = sysConfig.receiverEmail || 'madnisialpro@gmail.com';
     }
 
-    // 🔥 CUSTOM SOCIAL LINKS
+    // Custom Socials
     document.querySelectorAll('.dynamic-extra-social').forEach(el => el.remove()); 
     const footerContainer = document.getElementById('footer-social-links');
     if (footerContainer && sysConfig.customSocials) {
@@ -127,18 +120,20 @@ function applySystemConfigToUI() {
     }
     if(window.renderAdminCustomSocials) renderAdminCustomSocials();
 
-    // 🔥 CHECKOUT PAYMENT DROPDOWN
+    // Custom Payments
     const paySelect = document.getElementById('pay-method');
     if (paySelect) {
         let options = `<option value="" selected disabled>Select Payment Method</option><option value="Cash on Delivery">Cash on Delivery</option>`;
-        if (sysConfig.payEasypaisa) options += `<option value="Easypaisa">Easypaisa</option>`;
-        if (sysConfig.payJazzcash) options += `<option value="Jazz Cash">Jazz Cash</option>`;
-        if (sysConfig.bankName && sysConfig.bankNumber) options += `<option value="Bank">${sysConfig.bankName}</option>`;
+        if(sysConfig.paymentMethods) {
+            sysConfig.paymentMethods.forEach(p => {
+                options += `<option value="${p.id}">${p.name}</option>`;
+            });
+        }
         paySelect.innerHTML = options;
     }
+    if(window.renderAdminPayments) renderAdminPayments();
 }
 
-// 🔥 ADD CUSTOM CATEGORY FUNCTION
 window.addCustomCategory = async function(e) {
     if(e) e.preventDefault();
     const input = document.getElementById('custom-cat-input');
@@ -166,13 +161,10 @@ window.addCustomCategory = async function(e) {
     }
 }
 
-// 🔥 DYNAMIC CATEGORIES FOR NAVBAR AND ADMIN SELECT
 window.updateCategoriesUI = function() {
-    // Yehi Defaults rahenge
     const defaults = ['Rings', 'Necklaces & Pendants', 'Bracelets', 'Ear-Rings', 'Watches'];
     let customCats = sysConfig.customCategories || [];
 
-    // 1. Update Navbar
     const navContainer = document.getElementById('dynamic-nav-categories');
     if (navContainer) {
         let navHTML = '';
@@ -182,7 +174,6 @@ window.updateCategoriesUI = function() {
         navContainer.innerHTML = navHTML;
     }
 
-    // 2. Update Admin Add Product Form Select
     const adminSelect = document.getElementById('new-p-cat');
     if (adminSelect) {
         let adminHTML = `<option value="" disabled selected>Select Category</option>`;
@@ -192,7 +183,6 @@ window.updateCategoriesUI = function() {
     }
 };
 
-// 🔥 ADD CUSTOM SOCIAL LINK (NAME & URL)
 window.addCustomSocial = async function(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]'); btn.innerHTML = 'Adding...'; btn.disabled = true;
@@ -218,6 +208,43 @@ window.renderAdminCustomSocials = function() {
     container.innerHTML = sysConfig.customSocials.map(link => `<div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-slate-50 text-slate-600 rounded flex items-center justify-center"><i class="fa-solid fa-link"></i></div><div><p class="text-xs font-bold text-slate-800">${link.name}</p><p class="text-[10px] text-slate-500 truncate w-32">${link.url}</p></div></div><button onclick="deleteCustomSocial(${link.id})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div>`).join('');
 }
 
+window.addPaymentMethod = async function(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerHTML = 'Adding...'; btn.disabled = true;
+    const name = document.getElementById('new-pay-name').value;
+    const number = document.getElementById('new-pay-number').value;
+    if(!sysConfig.paymentMethods) sysConfig.paymentMethods = [];
+    sysConfig.paymentMethods.push({ id: Date.now(), name: name, number: number });
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
+        e.target.reset(); applySystemConfigToUI();
+    } catch(err) { alert("Error adding method."); } 
+    finally { btn.innerHTML = 'Add Method'; btn.disabled = false; }
+}
+
+window.deletePaymentMethod = async function(id) {
+    if(!confirm("Remove this payment method?")) return;
+    sysConfig.paymentMethods = sysConfig.paymentMethods.filter(p => p.id !== id);
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI();
+    } catch(err) { alert("Error removing method."); }
+}
+
+window.renderAdminPayments = function() {
+    const container = document.getElementById('admin-payment-list');
+    if(!container) return;
+    if(!sysConfig.paymentMethods || sysConfig.paymentMethods.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 font-bold text-center py-2">No custom methods added.</p>`; return; }
+    container.innerHTML = sysConfig.paymentMethods.map(p => `
+        <div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+            <div><p class="text-sm font-bold text-slate-800">${p.name}</p><p class="text-[11px] font-mono text-slate-500 tracking-wider">${p.number}</p></div>
+            <button onclick="deletePaymentMethod(${p.id})" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
+        </div>`).join('');
+}
+
+
 window.renderProducts = function(data) {
     const grid = document.getElementById('product-grid'); if(!grid) return;
     if(!data || data.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-10"><p class="text-slate-500 font-bold">No items found.</p></div>`; return; }
@@ -233,7 +260,6 @@ window.renderProducts = function(data) {
     `).join('');
 }
 
-// 🔥 FILTERS (SEARCH, PRICE RANGE, SORTING)
 window.applyFilters = function() { 
     let searchVal = document.getElementById('hero-search') ? document.getElementById('hero-search').value.toLowerCase() : ""; 
     let minPrice = parseFloat(document.getElementById('filter-min-price').value) || 0;
@@ -279,7 +305,6 @@ window.updateCartUI = function() {
 }
 window.removeCart = function(cid) { cart = cart.filter(i => i.cartId !== cid); updateCartUI(); document.querySelectorAll('.cart-count-badge').forEach(b => b.innerText = cart.length); if(!cart.length) closeModal('cart-modal'); }
 
-// 🔥 DYNAMIC CHECKOUT PAYMENT TOGGLE
 window.togglePaymentProof = function() {
     const methodId = document.getElementById('pay-method').value; 
     const proofContainer = document.getElementById('pay-proof-container'); 
@@ -293,30 +318,32 @@ window.togglePaymentProof = function() {
         return; 
     } 
 
+    const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
+    if(!selectedMethod) return;
+
     proofContainer.classList.remove('hidden'); detailsBox.classList.remove('hidden'); 
     setTimeout(() => { proofContainer.style.maxHeight = '200px'; proofContainer.style.opacity = '1'; detailsBox.style.maxHeight = '200px'; detailsBox.style.opacity = '1'; }, 10); 
     
-    if (methodId === "Easypaisa") { nameDisplay.innerText = "Easypaisa"; numDisplay.innerText = sysConfig.payEasypaisa; }
-    else if (methodId === "Jazz Cash") { nameDisplay.innerText = "Jazz Cash"; numDisplay.innerText = sysConfig.payJazzcash; }
-    else if (methodId === "Bank") { nameDisplay.innerText = sysConfig.bankName; numDisplay.innerText = sysConfig.bankNumber; }
+    nameDisplay.innerText = selectedMethod.name; 
+    numDisplay.innerText = selectedMethod.number; 
 }
 
 window.copyPaymentNumber = function() { const txt = document.getElementById('pay-number-display').innerText; navigator.clipboard.writeText(txt).then(() => { alert("Copied! ✅"); }); }
 
 function compressImage(dataUrl) { return new Promise((resolve) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 500; let width = img.width, height = img.height; if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.5)); }; img.src = dataUrl; }); }
 
-// 🔥 SUBMIT ORDER DYNAMIC
 window.submitOrder = async function() {
     const cName = document.getElementById('cust-name').value, cPhone = document.getElementById('cust-phone').value, cCity = document.getElementById('cust-city').value, cAddress = document.getElementById('cust-address').value;
     const methodId = document.getElementById('pay-method').value; if(!cName || !cPhone || !cCity || !cAddress || !methodId) { alert("Please complete shipping and payment selection."); return; }
     
     let pMethodName = "Cash on Delivery";
-    if (methodId === "Easypaisa") pMethodName = "Easypaisa";
-    else if (methodId === "Jazz Cash") pMethodName = "Jazz Cash";
-    else if (methodId === "Bank") pMethodName = sysConfig.bankName;
+    if (methodId !== "Cash on Delivery") {
+        const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
+        if(selectedMethod) pMethodName = selectedMethod.name;
+    }
 
     let paymentProofBase64 = null;
-    if (methodId !== "Cash on Delivery") { 
+    if (pMethodName !== "Cash on Delivery") { 
         const fileInput = document.getElementById('pay-proof-img'); 
         if (fileInput.files.length === 0) { alert("Please upload payment screenshot."); return; } 
         paymentProofBase64 = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(fileInput.files[0]); }); 
@@ -377,33 +404,117 @@ window.updateNotifUI = function() { const feed = document.getElementById('notif-
 window.toggleNotif = function() { document.getElementById('notif-sidebar').classList.toggle('open'); document.getElementById('notif-dot').style.display = 'none'; }
 window.toggleMobileMenu = function() { const menu = document.getElementById('mobile-menu'); menu.classList.toggle('hidden'); menu.classList.toggle('flex'); }
 
-window.checkAdminAccess = function() { 
+
+// ==========================================
+// 🛡️ UNBREAKABLE PASSWORD AUTHENTICATION
+// ==========================================
+
+function clientValidatePassword(password) {
+    if (!password || password.length < 12) return false;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[@#\.]/.test(password);
+    return hasUpper && hasLower && hasNumber && hasSpecial;
+}
+
+window.checkAdminAccess = async function() { 
     const mm = document.getElementById('mobile-menu'); if (mm && mm.classList.contains('flex')) { toggleMobileMenu(); } 
-    if (sessionStorage.getItem('admin_session_token')) { loadCloudflareOrdersSecure(); document.getElementById('admin-os').classList.remove('hidden'); document.getElementById('admin-os').classList.add('flex'); document.getElementById('main-site-content').style.display = 'none'; document.querySelector('nav').style.display = 'none'; switchSidebarTab('details'); return; }
-    document.getElementById('otp-request-form').classList.remove('hidden'); document.getElementById('otp-verify-form').classList.add('hidden'); openModal('admin-lock'); 
+    
+    if (sessionStorage.getItem('admin_session_token')) { 
+        loadCloudflareOrdersSecure(); launchAdminOS(); return; 
+    }
+    
+    openModal('admin-lock'); 
+    document.getElementById('auth-setup-form').classList.add('hidden');
+    document.getElementById('auth-login-form').classList.add('hidden');
+    document.getElementById('admin-modal-title').innerText = "Connecting...";
+    document.getElementById('admin-modal-desc').innerText = "Syncing with secure vault...";
+
+    try {
+        const res = await fetch(`${CLOUDFLARE_API_URL}/admin/status`);
+        const data = await res.json();
+        
+        if (data.isSetup) {
+            document.getElementById('admin-modal-title').innerText = "Access Secured";
+            document.getElementById('admin-modal-desc').innerText = "System is locked. Enter password.";
+            document.getElementById('auth-login-form').classList.remove('hidden');
+        } else {
+            document.getElementById('admin-modal-title').innerText = "Initialize OS";
+            document.getElementById('admin-modal-desc').innerText = "Create an unbreakable master password.";
+            document.getElementById('auth-setup-form').classList.remove('hidden');
+        }
+    } catch (err) {
+        document.getElementById('admin-modal-title').innerText = "Vault Error";
+        document.getElementById('admin-modal-desc').innerText = "Backend connection failed.";
+    }
 }
 
-window.requestAdminOTP = async function(e) {
-    e.preventDefault(); const emailInput = document.getElementById('admin-email-input').value; const btn = document.getElementById('btn-req-otp'); btn.disabled = true; btn.innerText = 'Sending PIN...';
-    try { const res = await fetch(`${CLOUDFLARE_API_URL}/send-otp`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email: emailInput }) }); const data = await res.json();
-        if (res.ok) { document.getElementById('otp-request-form').classList.add('hidden'); document.getElementById('otp-verify-form').classList.remove('hidden'); alert(`OTP successfully sent to the configured System Email! Please check the inbox.`); } else { alert(`❌ Access Denied: ${data.error}`); }
-    } catch (e) { alert("Server connection failed."); } finally { btn.disabled = false; btn.innerText = 'SEND OTP'; }
+window.authCreateMasterPassword = async function(e) {
+    e.preventDefault();
+    const pass = document.getElementById('auth-setup-pass').value;
+    const btn = document.getElementById('btn-auth-setup');
+
+    if (!clientValidatePassword(pass)) {
+        alert("❌ Denied: Password must be 12 characters and include a Capital letter, a lowercase letter, a number, and a symbol (@, #, or .)");
+        return;
+    }
+
+    btn.disabled = true; btn.innerText = "Locking Vault...";
+    try {
+        const res = await fetch(`${CLOUDFLARE_API_URL}/admin/setup-password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+            sessionStorage.setItem('admin_session_token', data.token);
+            closeModal('admin-lock'); launchAdminOS();
+            alert("🔐 Master password has been securely encrypted and locked in the database permanently!");
+        } else { alert(`❌ Error: ${data.error}`); }
+    } catch(err) { alert("Network error."); }
+    finally { btn.disabled = false; btn.innerText = "LOCK SYSTEM PERMANENTLY"; }
 }
 
-window.verifyAdminOTP = async function(e) {
-    e.preventDefault(); const otpInput = document.getElementById('admin-otp-input').value; const btn = document.getElementById('btn-ver-otp'); btn.disabled = true; btn.innerText = 'Verifying...';
-    try { const res = await fetch(`${CLOUDFLARE_API_URL}/verify-otp`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ otp: otpInput }) }); const data = await res.json();
-        if (res.ok && data.token) { sessionStorage.setItem('admin_session_token', data.token); closeModal('admin-lock'); document.getElementById('admin-os').classList.remove('hidden'); document.getElementById('admin-os').classList.add('flex'); document.getElementById('main-site-content').style.display = 'none'; document.querySelector('nav').style.display = 'none'; document.getElementById('admin-otp-input').value = ''; loadCloudflareOrdersSecure(); switchSidebarTab('details'); } else { alert(`❌ Invalid Code: ${data.error}`); }
-    } catch (e) { alert("Verification request failed."); } finally { btn.disabled = false; btn.innerText = 'VERIFY & LOGIN'; }
+window.authLoginMaster = async function(e) {
+    e.preventDefault();
+    const pass = document.getElementById('auth-login-pass').value;
+    const btn = document.getElementById('btn-auth-login');
+
+    btn.disabled = true; btn.innerText = "Decrypting...";
+    try {
+        const res = await fetch(`${CLOUDFLARE_API_URL}/admin/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+            sessionStorage.setItem('admin_session_token', data.token);
+            closeModal('admin-lock'); document.getElementById('auth-login-pass').value = ''; launchAdminOS();
+        } else { alert("❌ Intrusion Detected: Incorrect Password."); }
+    } catch(err) { alert("Network error."); }
+    finally { btn.disabled = false; btn.innerText = "UNLOCK OS"; }
+}
+
+function launchAdminOS() {
+    document.getElementById('admin-os').classList.remove('hidden'); 
+    document.getElementById('admin-os').classList.add('flex'); 
+    document.getElementById('main-site-content').style.display = 'none'; 
+    document.querySelector('nav').style.display = 'none'; 
+    loadCloudflareOrdersSecure(); 
+    switchSidebarTab('details');
 }
 
 window.logoutAdmin = function() { sessionStorage.removeItem('admin_session_token'); location.reload(); }
+
 window.toggleAdminSidebar = function() { document.getElementById('admin-sidebar-container').classList.toggle('-translate-x-full'); }
 
 window.switchSidebarTab = function(tabId) {
     document.querySelectorAll('.admin-view').forEach(view => { view.classList.add('hidden'); view.classList.remove('flex'); });
     const activeView = document.getElementById('view-' + tabId);
-    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='mail' || tabId==='social' || tabId==='payment' || tabId==='addprod') activeView.classList.add('flex'); }
+    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='social' || tabId==='payment' || tabId==='addprod') activeView.classList.add('flex'); }
     document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.remove('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500'));
     const activeBtn = document.getElementById('btn-tab-' + tabId); if(activeBtn) activeBtn.classList.add('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500');
     if(window.innerWidth < 1024) { document.getElementById('admin-sidebar-container').classList.add('-translate-x-full'); }
@@ -413,16 +524,8 @@ window.saveSystemConfig = async function(e, section) {
     e.preventDefault(); const btn = e.target.querySelector('button[type="submit"]'); const txt = btn.innerHTML; btn.innerHTML = 'Saving...'; btn.disabled = true;
     
     if (section === 'profile') { sysConfig.siteName = document.getElementById('conf-site-name').value; }
-    else if (section === 'mail') { sysConfig.receiverEmail = document.getElementById('conf-sys-email').value; }
     else if (section === 'pricing') { sysConfig.deliveryCharge = Number(document.getElementById('conf-delivery').value) || 0; sysConfig.discountPercent = Number(document.getElementById('conf-discount').value) || 0; }
     else if (section === 'contact') { sysConfig.contactPhone = document.getElementById('conf-contact-phone').value; sysConfig.contactEmail = document.getElementById('conf-contact-email').value; sysConfig.contactAddress = document.getElementById('conf-contact-address').value; }
-    else if (section === 'social') { sysConfig.socialFacebook = document.getElementById('conf-social-fb').value; sysConfig.socialInstagram = document.getElementById('conf-social-ig').value; sysConfig.socialWhatsapp = document.getElementById('conf-social-wa').value; sysConfig.socialTiktok = document.getElementById('conf-social-tt').value; sysConfig.socialYoutube = document.getElementById('conf-social-yt').value; }
-    else if (section === 'payment') { 
-        sysConfig.payEasypaisa = document.getElementById('conf-pay-ep').value; 
-        sysConfig.payJazzcash = document.getElementById('conf-pay-jc').value; 
-        sysConfig.bankName = document.getElementById('conf-bank-name').value; 
-        sysConfig.bankNumber = document.getElementById('conf-bank-number').value; 
-    }
     else if (section === 'offer') {
         sysConfig.offerBadge = document.getElementById('conf-offer-badge').value; sysConfig.offerTitle = document.getElementById('conf-offer-title').value; sysConfig.offerDesc = document.getElementById('conf-offer-desc').value;
         const fileInput = document.getElementById('conf-offer-img');
@@ -446,64 +549,14 @@ window.saveSystemConfig = async function(e, section) {
     finally { btn.innerHTML = txt; btn.disabled = false; }
 }
 
-window.updateDetailsView = function() {
-    const target = document.getElementById('details-log'); if(!target) return;
-    if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-[10px] md:text-xs font-bold text-center py-6">No records.</p>`; return; }
-    target.innerHTML = orders.map(o => `
-        <div class="bg-slate-50 p-4 rounded-2xl border text-xs space-y-2">
-            <div class="flex justify-between items-start flex-wrap gap-2">
-                <div><span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">ID: ${o.id}</span>
-                    <h4 class="font-black text-sm text-slate-900 mt-2">Client: ${o.customer}</h4>
-                    <p class="text-slate-500 font-bold"><i class="fa-solid fa-phone"></i> ${o.phone} | City: ${o.city}</p>
-                    <p class="text-slate-400">Addr: ${o.address}</p>
-                    <p class="text-slate-600 font-bold mt-1">Payment: ${o.paymentMethod || 'COD'}</p>
-                </div>
-                <div class="text-right"><p class="text-slate-400 font-medium">${o.date.split(',')[0]}</p>
-                    ${o.status === 'Paid' ? `<span class="text-green-600 font-black bg-green-100 px-2 py-0.5 rounded-md inline-block mt-2">✔ PAID</span>` : `<button onclick="markOrderPaid('${o.id}')" class="bg-green-600 text-white font-black px-3 py-1 rounded-lg mt-2 shadow-sm">Mark Paid</button>`}
-                </div>
-            </div>
-            <div class="border-t pt-2 flex gap-1.5 md:gap-2 justify-end">
-                ${o.paymentProof ? `<button onclick="downloadPaymentProof('${o.id}')" class="bg-emerald-600 text-white font-bold px-2 py-1.5 rounded-lg"><i class="fa-solid fa-image"></i> Proof</button>` : ''}
-                <button onclick="downloadCustomerDetailsImage('${o.id}')" class="bg-slate-900 text-white font-bold px-2 py-1.5 rounded-lg"><i class="fa-solid fa-image"></i> Details</button>
-                <button onclick="removeCustomerRecord('${o.id}')" class="text-rose-600 bg-white border px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
-            </div>
-        </div>
-    `).join('');
-}
-
-window.updateReceiptsView = function() {
-    const target = document.getElementById('receipts-log'); if(!target) return;
-    if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-[10px] md:text-xs font-bold text-center py-6">No records.</p>`; return; }
-    target.innerHTML = orders.map(o => `
-        <div class="bg-slate-50 p-4 rounded-2xl border text-xs flex justify-between items-center flex-wrap gap-4">
-            <div><span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">ID: ${o.id}</span>
-                <span class="${o.status==='Paid'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'} px-2 py-0.5 rounded-full font-bold ml-1">${o.status==='Paid'?'PAID DONE':'UNPAID'}</span>
-                <h4 class="font-bold text-slate-800 mt-1.5">Rec: ${o.customer}</h4><p class="text-slate-500 font-black">Tot: ${o.total}</p>
-            </div><button onclick="downloadCustomerReceipt('${o.id}')" class="bg-purple-600 text-white px-3 py-1.5 rounded-xl font-bold"><i class="fa-solid fa-download"></i> Slip</button>
-        </div>
-    `).join('');
-}
-
-window.markOrderPaid = async function(id) { const idx = orders.findIndex(x => String(x.id) === String(id)); if(idx !== -1) { orders[idx].status = "Paid"; updateDetailsView(); updateReceiptsView(); try { await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); await fetch(`${CLOUDFLARE_API_URL}/orders`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(orders[idx]) }); } catch(e) {} } }
-window.downloadCustomerReceipt = function(id) { const match = orders.find(x => String(x.id) === String(id)); if(match) { generateReceiptImageAndDownload(match); } }
-window.downloadPaymentProof = function(id) { const o = orders.find(x => String(x.id) === String(id)); if(o && o.paymentProof) { const link = document.createElement('a'); link.href = o.paymentProof; link.download = `Proof-${o.id}.jpg`; link.click(); } }
-window.removeCustomerRecord = async function(id) { if(confirm("Remove permanently?")) { orders = orders.filter(x => String(x.id) !== String(id)); updateDetailsView(); updateReceiptsView(); await fetch(`${CLOUDFLARE_API_URL}/orders/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); } }
-window.searchDetails = function() { const val = document.getElementById('search-details-n').value.toLowerCase(); updateDetailsView(orders.filter(o => o.phone.includes(val) || o.customer.toLowerCase().includes(val) || o.id.toLowerCase().includes(val))); }
-window.searchReceipts = function() { const val = document.getElementById('search-receipts-id').value.toLowerCase(); updateReceiptsView(orders.filter(o => o.id.toLowerCase().includes(val))); }
-
-window.downloadCustomerDetailsImage = function(id) {
-    const o = orders.find(x => String(x.id) === String(id)); if(!o) return; let pricingBreakdown = '';
-    if(o.subtotal !== undefined) { pricingBreakdown = `<p><strong>Subtotal:</strong> Rs. ${o.subtotal.toLocaleString()}</p>${o.discount > 0 ? `<p style="color:#16a34a;"><strong>Discount:</strong> - Rs. ${o.discount.toLocaleString()}</p>` : ''}<p><strong>Delivery:</strong> ${o.delivery > 0 ? 'Rs. ' + o.delivery.toLocaleString() : 'Free'}</p>`; }
-    document.getElementById('details-export-content').innerHTML = `<p><strong>ID:</strong> ${o.id}</p><p><strong>Client:</strong> ${o.customer}</p><p><strong>Phone:</strong> ${o.phone}</p><p><strong>City:</strong> ${o.city}</p><p><strong>Address:</strong> ${o.address}</p><div style="margin:10px 0; border-top:1px dashed #cbd5e1; padding-top:10px;">${pricingBreakdown}</div><p style="font-size:18px; margin-top:10px;"><strong>Total:</strong> ${o.total}</p>`;
-    setTimeout(() => { html2canvas(document.getElementById('details-export-area'), { scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = `Client-${o.id}.png`; link.href = canvas.toDataURL(); link.click(); }); }, 150);
-}
-
-// 🔥 ADD PRODUCT LOGIC 
 window.addNewProduct = async function(e) { 
     e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const originalText = btn.innerHTML; btn.innerHTML = 'Publishing...';
     
     let finalCategory = document.getElementById('new-p-cat').value;
-    if (!finalCategory) { alert("Please select a category!"); btn.disabled = false; btn.innerHTML = originalText; return; }
+    if (finalCategory === 'Custom') {
+        finalCategory = document.getElementById('custom-cat-input').value.trim();
+        if (!finalCategory) { alert("Please type a name for the new category!"); btn.disabled = false; btn.innerHTML = originalText; return; }
+    }
 
     const file = document.getElementById('new-p-img-file').files[0]; 
     if (!file) { alert("Please select an image first!"); btn.disabled = false; btn.innerHTML = originalText; return; }
@@ -518,7 +571,7 @@ window.addNewProduct = async function(e) {
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height); 
                 const newProduct = { id: Date.now().toString(), name: document.getElementById('new-p-name').value, price: parseInt(document.getElementById('new-p-price').value), cat: finalCategory, img: canvas.toDataURL('image/jpeg', 0.8) }; 
                 await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(newProduct) }); 
-                loadCloudflareData(); document.getElementById('add-product-form').reset(); alert("Published Successfully! 💎 You can add another one now."); 
+                loadCloudflareData(); document.getElementById('add-product-form').reset(); document.getElementById('custom-cat-input').classList.add('hidden'); alert("Published Successfully! 💎 You can add another one now."); 
             } catch (err) { alert("Error publishing product."); } finally { btn.disabled = false; btn.innerHTML = originalText; }
         }; img.src = event.target.result; 
     }; reader.readAsDataURL(file); 
@@ -526,6 +579,3 @@ window.addNewProduct = async function(e) {
 
 window.deleteProduct = async function(id) { if(confirm("Delete item?")) { await fetch(`${CLOUDFLARE_API_URL}/products/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); loadCloudflareData(); } }
 window.renderAdminProducts = function() { const log = document.getElementById('admin-product-log'); if(!log) return; log.innerHTML = allProducts.map(p => `<div class="bg-slate-50 p-2 md:p-3 rounded-xl flex justify-between items-center border text-[10px] md:text-xs font-bold"><div class="flex items-center gap-2 md:gap-3"><img src="${p.img}" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded"><div><h4>${p.name}</h4><span class="text-orange-600">Rs. ${p.price}</span></div></div><button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button></div>`).join(''); }
-
-window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
