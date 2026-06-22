@@ -169,7 +169,7 @@
                   <a href="#" id="link-whatsapp" target="_blank" style="display:none;" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 items-center justify-center hover:bg-orange-500 text-white transition-all"><i class="fa-brands fa-whatsapp"></i></a>
                   <a href="#" id="link-tiktok" target="_blank" style="display:none;" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 items-center justify-center hover:bg-orange-500 text-white transition-all"><i class="fa-brands fa-tiktok"></i></a>
                   <a href="#" id="link-youtube" target="_blank" style="display:none;" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 items-center justify-center hover:bg-orange-500 text-white transition-all"><i class="fa-brands fa-youtube"></i></a>
-              </div>
+                  </div>
               
               <p class="text-[10px] font-bold tracking-widest uppercase opacity-50">&copy; 2026 <span class="dynamic-sitename">LUXE</span> Premium Jewelry. All rights reserved.</p>
           </div>
@@ -189,7 +189,13 @@
               </div>
               <div class="relative">
                   <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                  <input type="password" id="auth-setup-pass" required placeholder="Create Master Password" minlength="12" class="w-full py-3.5 pl-10 pr-4 bg-slate-50 border rounded-xl font-bold outline-none focus:border-orange-500 transition-all text-sm">
+                  <input type="password" id="auth-setup-pass" required placeholder="Create Master Password" minlength="12" class="w-full py-3.5 pl-10 pr-10 bg-slate-50 border rounded-xl font-bold outline-none focus:border-orange-500 transition-all text-sm">
+                  <button type="button" onclick="togglePasswordVisibility('auth-setup-pass', 'eye-setup')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i id="eye-setup" class="fa-solid fa-eye-slash text-xs"></i></button>
+              </div>
+              <div class="relative">
+                  <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                  <input type="password" id="auth-setup-confirm" required placeholder="Confirm Master Password" minlength="12" class="w-full py-3.5 pl-10 pr-10 bg-slate-50 border rounded-xl font-bold outline-none focus:border-orange-500 transition-all text-sm">
+                  <button type="button" onclick="togglePasswordVisibility('auth-setup-confirm', 'eye-confirm')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i id="eye-confirm" class="fa-solid fa-eye-slash text-xs"></i></button>
               </div>
               <button type="submit" id="btn-auth-setup" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black hover:bg-orange-600 transition-colors shadow-lg active:scale-95 text-sm">LOCK SYSTEM PERMANENTLY</button>
           </form>
@@ -197,7 +203,8 @@
           <form id="auth-login-form" onsubmit="authLoginMaster(event)" class="hidden space-y-4">
               <div class="relative">
                   <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                  <input type="password" id="auth-login-pass" required placeholder="Enter Master Password" class="w-full py-3.5 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl font-black outline-none focus:border-orange-500 transition-all text-lg tracking-widest text-slate-800">
+                  <input type="password" id="auth-login-pass" required placeholder="Enter Master Password" class="w-full py-3.5 pl-10 pr-10 bg-slate-50 border border-slate-200 rounded-xl font-black outline-none focus:border-orange-500 transition-all text-lg tracking-widest text-slate-800">
+                  <button type="button" onclick="togglePasswordVisibility('auth-login-pass', 'eye-login')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i id="eye-login" class="fa-solid fa-eye-slash text-sm"></i></button>
               </div>
               <button type="submit" id="btn-auth-login" class="w-full bg-orange-600 text-white py-3.5 rounded-xl font-black hover:bg-slate-900 transition-colors shadow-lg active:scale-95 text-sm">UNLOCK OS</button>
           </form>
@@ -324,7 +331,7 @@
                 <div class="mb-6 bg-orange-50 p-4 rounded-xl border border-orange-200 max-w-xl">
                     <label class="text-[10px] md:text-xs font-bold text-slate-600 mb-2 block uppercase tracking-wider">Add Custom Category</label>
                     <div class="flex gap-2">
-                        <input type="text" id="custom-cat-input" placeholder="e.g. Anklets" class="w-full px-4 py-2.5 rounded-lg bg-white border text-xs font-bold outline-none focus:border-orange-500">
+                        <input type="text" id="custom-cat-input" placeholder="e.g. Payal" class="w-full px-4 py-2.5 rounded-lg bg-white border text-xs font-bold outline-none focus:border-orange-500">
                         <button type="button" id="add-cat-btn" onclick="addCustomCategory(event)" class="bg-orange-600 text-white px-4 py-2.5 rounded-lg font-black text-xs hover:bg-slate-900 transition-colors shadow-sm shrink-0">ADD</button>
                     </div>
                 </div>
