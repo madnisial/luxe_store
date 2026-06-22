@@ -576,6 +576,7 @@ window.addNewProduct = async function(e) {
         }; img.src = event.target.result; 
     }; reader.readAsDataURL(file); 
 }
-
+window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
 window.deleteProduct = async function(id) { if(confirm("Delete item?")) { await fetch(`${CLOUDFLARE_API_URL}/products/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); loadCloudflareData(); } }
 window.renderAdminProducts = function() { const log = document.getElementById('admin-product-log'); if(!log) return; log.innerHTML = allProducts.map(p => `<div class="bg-slate-50 p-2 md:p-3 rounded-xl flex justify-between items-center border text-[10px] md:text-xs font-bold"><div class="flex items-center gap-2 md:gap-3"><img src="${p.img}" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded"><div><h4>${p.name}</h4><span class="text-orange-600">Rs. ${p.price}</span></div></div><button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button></div>`).join(''); }
