@@ -15,12 +15,13 @@ let sysConfig = {
     offerTitle: 'The Royal Emerald Collection', 
     offerDesc: 'FLAT 40% OFF! Experience the allure of meticulously handcrafted emeralds. A timeless investment for your unforgettable moments.',
     offerImg: 'https://images.unsplash.com/photo-1605100804763-247f6612d54e?q=80&w=1000',
-    payEasypaisa: '0300 1234567', payJazzcash: '0300 1234567', payBank: 'Meezan Bank: 0123456789',
     contactPhone: '+92 300 1234567', contactEmail: 'support@luxe.com', contactAddress: 'Faisalabad, Pakistan',
     socialFacebook: '', socialInstagram: '', socialWhatsapp: '', socialTiktok: '', socialYoutube: '',
     deliveryCharge: 0,
     discountPercent: 0,
-    receiverEmail: 'madnisialpro@gmail.com' 
+    receiverEmail: 'madnisialpro@gmail.com',
+    customSocials: [], // 🔥 DYNAMIC SOCIALS
+    paymentMethods: [] // 🔥 DYNAMIC PAYMENTS
 };
 
 const savedConfig = localStorage.getItem('luxe_sysConfig');
@@ -60,13 +61,11 @@ async function loadCloudflareData() {
                 sysConfig = { ...sysConfig, ...dbConfig }; 
                 localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
             }
-            applySystemConfigToUI();
             
             allProducts = fetchedProducts.filter(p => p.id !== 'SYSTEM_CONFIG');
             
-            // 🔥 DYNAMIC NAVBAR UPDATE
+            applySystemConfigToUI();
             updateNavCategories();
-            
             applyFilters(); renderAdminProducts(); 
         }
         if (sessionStorage.getItem('admin_session_token')) { loadCloudflareOrdersSecure(); }
@@ -92,7 +91,6 @@ function applySystemConfigToUI() {
     if(document.getElementById('contact-address-disp')) document.getElementById('contact-address-disp').innerText = sysConfig.contactAddress;
 
     const toggleSocial = (id, url) => { const el = document.getElementById(id); if(el) { if(url && url.trim() !== '') { el.href = url; el.style.display = 'flex'; } else { el.style.display = 'none'; } } };
-    
     toggleSocial('link-facebook', sysConfig.socialFacebook); toggleSocial('link-instagram', sysConfig.socialInstagram); toggleSocial('link-tiktok', sysConfig.socialTiktok); toggleSocial('link-youtube', sysConfig.socialYoutube);
 
     let waUrl = sysConfig.socialWhatsapp;
@@ -103,44 +101,57 @@ function applySystemConfigToUI() {
         document.getElementById('conf-offer-badge').value = sysConfig.offerBadge;
         document.getElementById('conf-offer-title').value = sysConfig.offerTitle;
         document.getElementById('conf-offer-desc').value = sysConfig.offerDesc;
-        document.getElementById('conf-pay-ep').value = sysConfig.payEasypaisa;
-        document.getElementById('conf-pay-jc').value = sysConfig.payJazzcash;
-        document.getElementById('conf-pay-bank').value = sysConfig.payBank;
         document.getElementById('conf-contact-phone').value = sysConfig.contactPhone;
         document.getElementById('conf-contact-email').value = sysConfig.contactEmail;
         document.getElementById('conf-contact-address').value = sysConfig.contactAddress;
-        
         document.getElementById('conf-social-fb').value = sysConfig.socialFacebook || '';
         document.getElementById('conf-social-ig').value = sysConfig.socialInstagram || '';
         document.getElementById('conf-social-wa').value = sysConfig.socialWhatsapp || '';
         document.getElementById('conf-social-tt').value = sysConfig.socialTiktok || '';
         document.getElementById('conf-social-yt').value = sysConfig.socialYoutube || '';
-        
         document.getElementById('conf-delivery').value = sysConfig.deliveryCharge || 0;
         document.getElementById('conf-discount').value = sysConfig.discountPercent || 0;
-        
         document.getElementById('conf-sys-email').value = sysConfig.receiverEmail || 'madnisialpro@gmail.com';
     }
+
+    // 🔥 RENDER CUSTOM SOCIAL LINKS
+    document.querySelectorAll('.dynamic-extra-social').forEach(el => el.remove()); 
+    const footerContainer = document.getElementById('footer-social-links');
+    if (footerContainer && sysConfig.customSocials) {
+        sysConfig.customSocials.forEach(social => {
+            const iconClass = social.icon === 'fa-link' ? 'fa-solid' : 'fa-brands';
+            const linkHtml = `<a href="${social.url}" target="_blank" class="dynamic-extra-social w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 text-white transition-all"><i class="${iconClass} ${social.icon}"></i></a>`;
+            footerContainer.insertAdjacentHTML('beforeend', linkHtml);
+        });
+    }
+    if(window.renderAdminCustomSocials) renderAdminCustomSocials();
+
+    // 🔥 RENDER DYNAMIC PAYMENTS
+    const paySelect = document.getElementById('pay-method');
+    if (paySelect) {
+        paySelect.innerHTML = `<option value="" selected disabled>Select Payment Method</option><option value="Cash on Delivery">Cash on Delivery</option>`;
+        if(sysConfig.paymentMethods) {
+            sysConfig.paymentMethods.forEach(p => {
+                paySelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+            });
+        }
+    }
+    if(window.renderAdminPayments) renderAdminPayments();
 }
 
-// 🔥 UPDATE DYNAMIC NAVBAR CATEGORIES
+// 🔥 DYNAMIC NAVBAR CATEGORIES
 window.updateNavCategories = function() {
     const navContainer = document.getElementById('dynamic-nav-categories');
     if (!navContainer) return;
-    
-    // Extract unique categories, filter out invalid ones
     const uniqueCategories = [...new Set(allProducts.map(p => p.cat).filter(c => c && c !== 'System'))];
-    
     let navHTML = '';
     uniqueCategories.forEach(category => {
         navHTML += `<a href="#" onclick="filterByCategory('${category}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors">${category}</a>`;
     });
-    
     navHTML += `
         <div class="border-t border-slate-100 my-1"></div>
         <a href="#" onclick="filterByCategory('All')" class="block px-6 py-3 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors">View All Jewelry</a>
     `;
-    
     navContainer.innerHTML = navHTML;
 };
 
@@ -148,7 +159,6 @@ window.updateNavCategories = function() {
 window.checkCustomCategory = function() {
     const select = document.getElementById('new-p-cat');
     const customInput = document.getElementById('custom-cat-input');
-    
     if (select.value === 'Custom') {
         customInput.classList.remove('hidden');
         customInput.required = true;
@@ -159,6 +169,80 @@ window.checkCustomCategory = function() {
         customInput.value = '';
     }
 }
+
+// 🔥 ADD CUSTOM SOCIAL LINK
+window.addCustomSocial = async function(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerHTML = 'Adding...'; btn.disabled = true;
+    const icon = document.getElementById('new-social-icon').value;
+    const url = document.getElementById('new-social-url').value;
+    if(!sysConfig.customSocials) sysConfig.customSocials = [];
+    sysConfig.customSocials.push({ id: Date.now(), icon: icon, url: url });
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
+        e.target.reset(); applySystemConfigToUI();
+    } catch(err) { alert("Error adding link."); } 
+    finally { btn.innerHTML = 'Add Link'; btn.disabled = false; }
+}
+
+window.deleteCustomSocial = async function(id) {
+    if(!confirm("Remove this link?")) return;
+    sysConfig.customSocials = sysConfig.customSocials.filter(link => link.id !== id);
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI();
+    } catch(err) { alert("Error removing link."); }
+}
+
+window.renderAdminCustomSocials = function() {
+    const container = document.getElementById('admin-custom-socials-list');
+    if(!container) return;
+    if(!sysConfig.customSocials || sysConfig.customSocials.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 font-bold text-center py-2">No extra links.</p>`; return; }
+    container.innerHTML = sysConfig.customSocials.map(link => {
+        const iconType = link.icon === 'fa-link' ? 'fa-solid' : 'fa-brands';
+        return `<div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-slate-50 text-slate-600 rounded flex items-center justify-center"><i class="${iconType} ${link.icon}"></i></div><p class="text-xs text-slate-500 truncate w-40">${link.url}</p></div><button onclick="deleteCustomSocial(${link.id})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div>`;
+    }).join('');
+}
+
+// 🔥 ADD DYNAMIC PAYMENT METHOD
+window.addPaymentMethod = async function(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerHTML = 'Adding...'; btn.disabled = true;
+    const name = document.getElementById('new-pay-name').value;
+    const number = document.getElementById('new-pay-number').value;
+    if(!sysConfig.paymentMethods) sysConfig.paymentMethods = [];
+    sysConfig.paymentMethods.push({ id: Date.now(), name: name, number: number });
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
+        e.target.reset(); applySystemConfigToUI();
+    } catch(err) { alert("Error adding method."); } 
+    finally { btn.innerHTML = 'Add Method'; btn.disabled = false; }
+}
+
+window.deletePaymentMethod = async function(id) {
+    if(!confirm("Remove this payment method?")) return;
+    sysConfig.paymentMethods = sysConfig.paymentMethods.filter(p => p.id !== id);
+    try {
+        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI();
+    } catch(err) { alert("Error removing method."); }
+}
+
+window.renderAdminPayments = function() {
+    const container = document.getElementById('admin-payment-list');
+    if(!container) return;
+    if(!sysConfig.paymentMethods || sysConfig.paymentMethods.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 font-bold text-center py-2">No custom methods added.</p>`; return; }
+    container.innerHTML = sysConfig.paymentMethods.map(p => `
+        <div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+            <div><p class="text-sm font-bold text-slate-800">${p.name}</p><p class="text-[11px] font-mono text-slate-500 tracking-wider">${p.number}</p></div>
+            <button onclick="deletePaymentMethod(${p.id})" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
+        </div>`).join('');
+}
+
 
 window.renderProducts = function(data) {
     const grid = document.getElementById('product-grid'); if(!grid) return;
@@ -174,7 +258,6 @@ window.renderProducts = function(data) {
         </div>
     `).join('');
 }
-
 window.applyFilters = function() { let searchVal = document.getElementById('hero-search') ? document.getElementById('hero-search').value.toLowerCase() : ""; let filtered = [...allProducts]; if (currentCategory !== "All") filtered = filtered.filter(p => p.cat === currentCategory); if (searchVal) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal)); renderProducts(filtered); }
 window.filterByCategory = function(cat) { currentCategory = cat; document.getElementById('current-category-label').innerText = cat === "All" ? "Showing All Jewelry" : `Category: ${cat}`; if(document.getElementById('hero-search')) document.getElementById('hero-search').value = ""; applyFilters(); document.getElementById('products').scrollIntoView(); }
 window.filterItemsFromHero = function() { currentCategory = "All"; document.getElementById('current-category-label').innerText = "Search Results"; applyFilters(); }
@@ -204,27 +287,65 @@ window.updateCartUI = function() {
 }
 window.removeCart = function(cid) { cart = cart.filter(i => i.cartId !== cid); updateCartUI(); document.querySelectorAll('.cart-count-badge').forEach(b => b.innerText = cart.length); if(!cart.length) closeModal('cart-modal'); }
 
+// 🔥 DYNAMIC CHECKOUT PAYMENT TOGGLE
 window.togglePaymentProof = function() {
-    const method = document.getElementById('pay-method').value; const proofContainer = document.getElementById('pay-proof-container'); const detailsBox = document.getElementById('payment-details-box'); const numDisplay = document.getElementById('pay-number-display');
-    if(method === "Cash on Delivery") { proofContainer.classList.add('hidden'); proofContainer.style.maxHeight = '0px'; proofContainer.style.opacity = '0'; detailsBox.classList.add('hidden'); detailsBox.style.maxHeight = '0px'; detailsBox.style.opacity = '0'; } 
-    else { proofContainer.classList.remove('hidden'); detailsBox.classList.remove('hidden'); setTimeout(() => { proofContainer.style.maxHeight = '200px'; proofContainer.style.opacity = '1'; detailsBox.style.maxHeight = '200px'; detailsBox.style.opacity = '1'; }, 10); if(method === 'Easypaisa') numDisplay.innerText = sysConfig.payEasypaisa; if(method === 'Jazz Cash') numDisplay.innerText = sysConfig.payJazzcash; if(method === 'Bank') numDisplay.innerText = sysConfig.payBank; }
+    const methodId = document.getElementById('pay-method').value; 
+    const proofContainer = document.getElementById('pay-proof-container'); 
+    const detailsBox = document.getElementById('payment-details-box'); 
+    const numDisplay = document.getElementById('pay-number-display');
+    
+    if(!methodId || methodId === "Cash on Delivery") { 
+        proofContainer.classList.add('hidden'); proofContainer.style.maxHeight = '0px'; proofContainer.style.opacity = '0'; 
+        detailsBox.classList.add('hidden'); detailsBox.style.maxHeight = '0px'; detailsBox.style.opacity = '0';
+        detailsBox.classList.remove('payment-dropdown-anim');
+        return; 
+    } 
+    
+    const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
+    if(!selectedMethod) return;
+
+    proofContainer.classList.remove('hidden'); detailsBox.classList.remove('hidden'); 
+    detailsBox.classList.remove('payment-dropdown-anim');
+    void detailsBox.offsetWidth;
+    detailsBox.classList.add('payment-dropdown-anim');
+    
+    setTimeout(() => { 
+        proofContainer.style.maxHeight = '200px'; proofContainer.style.opacity = '1'; 
+        detailsBox.style.maxHeight = '200px'; detailsBox.style.opacity = '1'; 
+    }, 10); 
+    
+    numDisplay.innerText = selectedMethod.number; 
 }
+
 window.copyPaymentNumber = function() { const txt = document.getElementById('pay-number-display').innerText; navigator.clipboard.writeText(txt).then(() => { alert("Copied! ✅"); }); }
 
 function compressImage(dataUrl) { return new Promise((resolve) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_WIDTH = 500; let width = img.width, height = img.height; if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.5)); }; img.src = dataUrl; }); }
 
+// 🔥 SUBMIT ORDER DYNAMIC
 window.submitOrder = async function() {
     const cName = document.getElementById('cust-name').value, cPhone = document.getElementById('cust-phone').value, cCity = document.getElementById('cust-city').value, cAddress = document.getElementById('cust-address').value;
-    const pMethod = document.getElementById('pay-method').value; if(!cName || !cPhone || !cCity || !cAddress) { alert("Please complete shipping data."); return; }
+    const methodId = document.getElementById('pay-method').value; if(!cName || !cPhone || !cCity || !cAddress || !methodId) { alert("Please complete shipping and payment selection."); return; }
     
+    let pMethodName = "Cash on Delivery";
+    if (methodId !== "Cash on Delivery") {
+        const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
+        if(selectedMethod) pMethodName = selectedMethod.name;
+    }
+
     let paymentProofBase64 = null;
-    if (pMethod !== "Cash on Delivery") { const fileInput = document.getElementById('pay-proof-img'); if (fileInput.files.length === 0) { alert("Please upload payment screenshot."); return; } paymentProofBase64 = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(fileInput.files[0]); }); paymentProofBase64 = await compressImage(paymentProofBase64); }
+    if (pMethodName !== "Cash on Delivery") { 
+        const fileInput = document.getElementById('pay-proof-img'); 
+        if (fileInput.files.length === 0) { alert("Please upload payment screenshot."); return; } 
+        paymentProofBase64 = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(fileInput.files[0]); }); 
+        paymentProofBase64 = await compressImage(paymentProofBase64); 
+    }
+    
     const btn = document.getElementById('confirm-order-btn'); btn.disabled = true; btn.innerText = 'Processing...';
     const orderId = 'LX-' + Math.floor(10000 + Math.random() * 89999);
     
     const order = { 
         id: orderId, customer: cName, phone: cPhone, city: cCity, address: cAddress, subtotal: window.currentCheckoutMeta.subtotal, discount: window.currentCheckoutMeta.discountAmount, delivery: window.currentCheckoutMeta.delivery, total: "Rs. " + window.currentCheckoutMeta.finalTotal.toLocaleString(), 
-        items: [...cart], date: new Date().toLocaleString(), status: "Unpaid", paymentMethod: pMethod, paymentProof: paymentProofBase64 
+        items: [...cart], date: new Date().toLocaleString(), status: "Unpaid", paymentMethod: pMethodName, paymentProof: paymentProofBase64 
     };
     
     try { await fetch(`${CLOUDFLARE_API_URL}/orders`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(order) }); loadCloudflareData(); cart = []; document.querySelectorAll('.cart-count-badge').forEach(b => b.innerText = "0"); closeModal('cart-modal'); alert(`Order Confirmed!`); } catch (e) { alert("Network Error."); } finally { btn.innerText = 'CONFIRM ORDER'; btn.disabled = false; }
@@ -248,7 +369,6 @@ window.generateReceiptImageAndDownload = function(order) {
     setTimeout(() => { html2canvas(document.getElementById('receipt-area'), { scale: 2, useCORS: true }).then(canvas => { const link = document.createElement('a'); link.download = `Receipt-${order.id}.png`; link.href = canvas.toDataURL('image/png'); link.click(); paidBadge.style.display = 'none'; }); }, 150);
 }
 
-// 🔥 CONTACT FORM SUBMISSION ENGINE
 window.submitContactForm = async function(e) {
     e.preventDefault();
     const btn = document.getElementById('contact-f-btn');
@@ -261,17 +381,11 @@ window.submitContactForm = async function(e) {
     const message = document.getElementById('contact-f-msg').value;
 
     try {
-        const res = await fetch(`${CLOUDFLARE_API_URL}/contact-msg`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, message })
-        });
+        const res = await fetch(`${CLOUDFLARE_API_URL}/contact-msg`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, message }) });
         const data = await res.json();
         
-        if (res.ok) {
-            alert("Message Sent! 💎 We have forwarded it directly to the admin.");
-            document.getElementById('public-contact-form').reset();
-        } else { alert("Failed to send message: " + data.error); }
+        if (res.ok) { alert("Message Sent! 💎 We have forwarded it directly to the admin."); document.getElementById('public-contact-form').reset(); } 
+        else { alert("Failed to send message: " + data.error); }
     } catch (err) { alert("Network Error. Cannot reach server."); } 
     finally { btn.disabled = false; btn.innerHTML = ogText; }
 }
@@ -281,9 +395,6 @@ window.updateNotifUI = function() { const feed = document.getElementById('notif-
 window.toggleNotif = function() { document.getElementById('notif-sidebar').classList.toggle('open'); document.getElementById('notif-dot').style.display = 'none'; }
 window.toggleMobileMenu = function() { const menu = document.getElementById('mobile-menu'); menu.classList.toggle('hidden'); menu.classList.toggle('flex'); }
 
-// ==========================================
-// 🛡️ DYNAMIC EMAIL AUTH PIPELINE (OTP)
-// ==========================================
 window.checkAdminAccess = function() { 
     const mm = document.getElementById('mobile-menu'); if (mm && mm.classList.contains('flex')) { toggleMobileMenu(); } 
     if (sessionStorage.getItem('admin_session_token')) { loadCloudflareOrdersSecure(); document.getElementById('admin-os').classList.remove('hidden'); document.getElementById('admin-os').classList.add('flex'); document.getElementById('main-site-content').style.display = 'none'; document.querySelector('nav').style.display = 'none'; switchSidebarTab('details'); return; }
@@ -310,20 +421,18 @@ window.toggleAdminSidebar = function() { document.getElementById('admin-sidebar-
 window.switchSidebarTab = function(tabId) {
     document.querySelectorAll('.admin-view').forEach(view => { view.classList.add('hidden'); view.classList.remove('flex'); });
     const activeView = document.getElementById('view-' + tabId);
-    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='mail') activeView.classList.add('flex'); }
+    if(activeView) { activeView.classList.remove('hidden'); if(tabId==='details' || tabId==='receipts' || tabId==='inventory' || tabId==='pricing' || tabId==='mail' || tabId==='social' || tabId==='payment') activeView.classList.add('flex'); }
     document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.remove('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500'));
     const activeBtn = document.getElementById('btn-tab-' + tabId); if(activeBtn) activeBtn.classList.add('bg-white/5', 'text-white', 'border-l-4', 'border-orange-500');
     if(window.innerWidth < 1024) { document.getElementById('admin-sidebar-container').classList.add('-translate-x-full'); }
 }
 
-// 🔥 SECURE CONFIG SAVE
 window.saveSystemConfig = async function(e, section) {
     e.preventDefault(); const btn = e.target.querySelector('button[type="submit"]'); const txt = btn.innerHTML; btn.innerHTML = 'Saving...'; btn.disabled = true;
     
     if (section === 'profile') { sysConfig.siteName = document.getElementById('conf-site-name').value; }
     else if (section === 'mail') { sysConfig.receiverEmail = document.getElementById('conf-sys-email').value; }
     else if (section === 'pricing') { sysConfig.deliveryCharge = Number(document.getElementById('conf-delivery').value) || 0; sysConfig.discountPercent = Number(document.getElementById('conf-discount').value) || 0; }
-    else if (section === 'payment') { sysConfig.payEasypaisa = document.getElementById('conf-pay-ep').value; sysConfig.payJazzcash = document.getElementById('conf-pay-jc').value; sysConfig.payBank = document.getElementById('conf-pay-bank').value; }
     else if (section === 'contact') { sysConfig.contactPhone = document.getElementById('conf-contact-phone').value; sysConfig.contactEmail = document.getElementById('conf-contact-email').value; sysConfig.contactAddress = document.getElementById('conf-contact-address').value; }
     else if (section === 'social') { sysConfig.socialFacebook = document.getElementById('conf-social-fb').value; sysConfig.socialInstagram = document.getElementById('conf-social-ig').value; sysConfig.socialWhatsapp = document.getElementById('conf-social-wa').value; sysConfig.socialTiktok = document.getElementById('conf-social-tt').value; sysConfig.socialYoutube = document.getElementById('conf-social-yt').value; }
     else if (section === 'offer') {
@@ -349,7 +458,6 @@ window.saveSystemConfig = async function(e, section) {
     finally { btn.innerHTML = txt; btn.disabled = false; }
 }
 
-// --- SECURE UI CARD RENDERERS ---
 window.updateDetailsView = function() {
     const target = document.getElementById('details-log'); if(!target) return;
     if(orders.length === 0) { target.innerHTML = `<p class="text-slate-400 text-[10px] md:text-xs font-bold text-center py-6">No records.</p>`; return; }
@@ -402,22 +510,18 @@ window.downloadCustomerDetailsImage = function(id) {
     setTimeout(() => { html2canvas(document.getElementById('details-export-area'), { scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = `Client-${o.id}.png`; link.href = canvas.toDataURL(); link.click(); }); }, 150);
 }
 
-// 🔥 ADD NEW PRODUCT (WITH CUSTOM CATEGORY LOGIC)
+// 🔥 ADD PRODUCT LOGIC
 window.addNewProduct = async function(e) { 
     e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const originalText = btn.innerHTML; btn.innerHTML = 'Publishing...';
     
     let finalCategory = document.getElementById('new-p-cat').value;
     if (finalCategory === 'Custom') {
         finalCategory = document.getElementById('custom-cat-input').value.trim();
-        if (!finalCategory) {
-            alert("Please type a name for the new category!");
-            btn.disabled = false; btn.innerHTML = originalText; return;
-        }
+        if (!finalCategory) { alert("Please type a name for the new category!"); btn.disabled = false; btn.innerHTML = originalText; return; }
     }
 
     const file = document.getElementById('new-p-img-file').files[0]; 
     if (!file) { alert("Please select an image first!"); btn.disabled = false; btn.innerHTML = originalText; return; }
-    
     const reader = new FileReader(); 
     reader.onload = function(event) { 
         const img = new Image(); 
@@ -427,21 +531,9 @@ window.addNewProduct = async function(e) {
                 if (width > MAX_WIDTH) { height = Math.round((height * MAX_WIDTH) / width); width = MAX_WIDTH; }
                 const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); 
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height); 
-                
-                const newProduct = { 
-                    id: Date.now().toString(), 
-                    name: document.getElementById('new-p-name').value, 
-                    price: parseInt(document.getElementById('new-p-price').value), 
-                    cat: finalCategory, 
-                    img: canvas.toDataURL('image/jpeg', 0.8) 
-                }; 
-                
+                const newProduct = { id: Date.now().toString(), name: document.getElementById('new-p-name').value, price: parseInt(document.getElementById('new-p-price').value), cat: finalCategory, img: canvas.toDataURL('image/jpeg', 0.8) }; 
                 await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(newProduct) }); 
-                
-                loadCloudflareData(); 
-                document.getElementById('add-product-form').reset(); 
-                document.getElementById('custom-cat-input').classList.add('hidden');
-                alert("Published Successfully! 💎 You can add another one now."); 
+                loadCloudflareData(); document.getElementById('add-product-form').reset(); document.getElementById('custom-cat-input').classList.add('hidden'); alert("Published Successfully! 💎 You can add another one now."); 
             } catch (err) { alert("Error publishing product."); } finally { btn.disabled = false; btn.innerHTML = originalText; }
         }; img.src = event.target.result; 
     }; reader.readAsDataURL(file); 
