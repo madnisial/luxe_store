@@ -29,10 +29,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; ba
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); z-index: 3100; display: none; }
 
-/* Payment Box Animation */
-.payment-dropdown-anim { animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; transform-origin: top; }
-@keyframes slideDownFade { from { opacity: 0; transform: translateY(-15px) scaleY(0.9); } to { opacity: 1; transform: translateY(0) scaleY(1); } }
-
 .modern-hamburger { display: flex; flex-direction: column; justify-content: space-between; width: 24px; height: 16px; background: transparent; border: none; cursor: pointer; position: relative; z-index: 2100; }
 .modern-hamburger .bar { width: 100%; height: 2px; background-color: #0f172a; border-radius: 10px; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .modern-hamburger.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); background-color: #ea580c; }
