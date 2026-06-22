@@ -35,17 +35,13 @@
     <div class="hidden md:flex items-center gap-8 text-sm font-bold text-slate-600">
         <a href="#home" class="hover:text-orange-600 transition-colors">Home</a>
         <a href="#offers" class="hover:text-orange-600 transition-colors text-orange-500"><i class="fa-solid fa-fire mr-1"></i> Offers</a>
+        
         <div class="relative group nav-item">
             <a href="#products" class="hover:text-orange-600 transition-colors flex items-center gap-1 py-4">Collections <i class="fa-solid fa-chevron-down text-[10px]"></i></a>
-            <div class="dropdown-menu absolute top-full left-0 bg-white border border-slate-100 shadow-xl rounded-2xl w-56 py-2 transition-all duration-300">
-                <a href="#" onclick="filterByCategory('Rings')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600">Luxury Rings</a>
-                <a href="#" onclick="filterByCategory('Necklaces')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600">Necklaces & Pendants</a>
-                <a href="#" onclick="filterByCategory('Bracelets')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600">Bracelets</a>
-                <a href="#" onclick="filterByCategory('Earrings')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600">Earrings</a>
-                <div class="border-t border-slate-100 my-1"></div>
-                <a href="#" onclick="filterByCategory('All')" class="block px-6 py-3 hover:bg-slate-50 text-slate-400 hover:text-slate-900">View All Jewelry</a>
-            </div>
+            <div id="dynamic-nav-categories" class="dropdown-menu absolute top-full left-0 bg-white border border-slate-100 shadow-xl rounded-2xl w-56 py-2 transition-all duration-300">
+                </div>
         </div>
+
         <a href="#contact" class="hover:text-orange-600 transition-colors">Contact</a>
     </div>
     
@@ -145,7 +141,6 @@
               </div>
               <div class="flex-1 w-full bg-slate-50 p-6 md:p-10 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 shadow-inner">
                   
-                  <!-- 🔥 DYNAMIC CONTACT FORM ROUTED TO BACKEND -->
                   <form id="public-contact-form" onsubmit="submitContactForm(event)" class="space-y-4">
                       <input type="text" id="contact-f-name" placeholder="Your Name" required class="w-full p-3.5 rounded-xl bg-white border text-xs sm:text-sm shadow-sm outline-none focus:border-orange-500">
                       <input type="email" id="contact-f-email" placeholder="Email Address" required class="w-full p-3.5 rounded-xl bg-white border text-xs sm:text-sm shadow-sm focus:border-orange-500">
@@ -175,7 +170,6 @@
       </footer>
   </div> 
 
-  <!-- ADMIN OTP GATEWAY MODAL -->
   <div id="admin-lock" class="modal-overlay items-center justify-center z-[3100]">
       <div class="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] w-full max-w-sm text-center shadow-2xl border border-slate-100 mx-4 slide-up">
           <div class="w-16 h-16 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"><i class="fa-solid fa-shield-halved text-2xl md:text-3xl"></i></div>
@@ -297,7 +291,6 @@
             
             <button id="btn-tab-pricing" onclick="switchSidebarTab('pricing')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-tags w-5 text-center"></i> Pricing Rules</button>
             
-            <!-- 🔥 NEW MAIL ENGINE TAB -->
             <button id="btn-tab-mail" onclick="switchSidebarTab('mail')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-envelope-open-text w-5 text-center"></i> Mail Engine</button>
             
             <button id="btn-tab-social" onclick="switchSidebarTab('social')" class="sidebar-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-all"><i class="fa-solid fa-hashtag w-5 text-center"></i> Social Links</button>
@@ -329,8 +322,22 @@
                     <div><input type="text" id="new-p-name" required placeholder="Jewelry Name" class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-xs md:text-sm font-bold outline-none"></div>
                     <div class="grid grid-cols-2 gap-3 md:gap-4">
                         <div><input type="number" id="new-p-price" required placeholder="Price" class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-xs md:text-sm font-bold outline-none"></div>
-                        <div><select id="new-p-cat" class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-xs md:text-sm font-bold outline-none cursor-pointer"><option value="Rings">Rings</option> <option value="Necklaces">Necklaces</option> <option value="Bracelets">Bracelets</option> <option value="Earrings">Earrings</option> <option value="Watches">Watches</option> <option value="Sets">Jewelry Sets</option></select></div>
+                        <div>
+                            <select id="new-p-cat" onchange="checkCustomCategory()" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-xs md:text-sm font-bold outline-none cursor-pointer">
+                                <option value="" disabled selected>Select Category</option>
+                                <option value="Rings">Rings</option> 
+                                <option value="Necklaces">Necklaces</option> 
+                                <option value="Bracelets">Bracelets</option> 
+                                <option value="Earrings">Earrings</option> 
+                                <option value="Watches">Watches</option> 
+                                <option value="Sets">Jewelry Sets</option>
+                                <option value="Custom" class="font-black text-orange-600">+ Add New Category</option>
+                            </select>
+                        </div>
                     </div>
+                    
+                    <input type="text" id="custom-cat-input" placeholder="Type new category name..." class="w-full px-4 py-3 rounded-xl bg-orange-50 border border-orange-300 text-xs md:text-sm font-bold outline-none focus:border-orange-500 hidden transition-all">
+                    
                     <div><input type="file" id="new-p-img-file" accept="image/*" required class="w-full px-4 py-3 rounded-xl bg-slate-50 border text-[10px] md:text-xs outline-none cursor-pointer"></div>
                     <button type="submit" id="add-btn-submit" class="w-full py-3.5 bg-slate-900 text-white font-black text-xs md:text-sm rounded-xl hover:bg-orange-600 transition-colors">Publish Product</button>
                 </form>
@@ -347,7 +354,6 @@
                 </form>
             </div>
 
-            <!-- 🔥 ULTRA-MODERN PRICING CARDS -->
             <div id="view-pricing" class="admin-view hidden flex-col">
                 <h3 class="font-black text-lg md:text-xl mb-8 text-slate-900 border-b pb-3"><i class="fa-solid fa-tags text-orange-500 mr-2"></i> Pricing & Discounts</h3>
                 <form onsubmit="saveSystemConfig(event, 'pricing')" class="max-w-2xl w-full">
@@ -388,7 +394,6 @@
                 </form>
             </div>
 
-            <!-- 🔥 NEW MAIL ENGINE DASHBOARD -->
             <div id="view-mail" class="admin-view hidden flex-col">
                 <h3 class="font-black text-lg md:text-xl mb-8 text-slate-900 border-b pb-3"><i class="fa-solid fa-envelope-open-text text-red-500 mr-2"></i> Mail Engine</h3>
                 <form onsubmit="saveSystemConfig(event, 'mail')" class="max-w-2xl w-full">
@@ -490,7 +495,6 @@
     </div>
   </section>
 
-  <!-- EXPORT IMAGES CANVAS BOARDS -->
   <div id="details-export-wrapper" style="position: absolute; left: -9999px; top: -9999px;">
       <div id="details-export-area" style="width: 500px; background: #ffffff; padding: 40px; border: 2px solid #e2e8f0; border-radius: 20px; font-family: 'Plus Jakarta Sans', sans-serif;">
           <div style="text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 20px;">
