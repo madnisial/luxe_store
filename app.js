@@ -1,7 +1,7 @@
 // ==========================================
 // 1. CLOUDFLARE CONFIGURATION
 // ==========================================
-const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // Yahan apna worker URL rakhna
+const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // Yahan apna URL verify karna
 
 // ==========================================
 // 2. STATE & GLOBAL CONFIGURATION
@@ -14,7 +14,6 @@ let sysConfig = {
     offerBadge: 'Summer Vault Deal', 
     offerTitle: 'The Royal Emerald Collection', 
     offerDesc: 'FLAT 40% OFF! Experience the allure of meticulously handcrafted emeralds. A timeless investment for your unforgettable moments.',
-    offerImg: 'https://images.unsplash.com/photo-1605100804763-247f6612d54e?q=80&w=1000',
     contactPhone: '+92 300 1234567', contactEmail: 'support@luxe.com', contactAddress: 'Faisalabad, Pakistan',
     socialFacebook: '', socialInstagram: '', socialWhatsapp: '', socialTiktok: '', socialYoutube: '',
     deliveryCharge: 0,
@@ -80,7 +79,6 @@ function applySystemConfigToUI() {
     if(document.getElementById('offer-badge')) document.getElementById('offer-badge').innerText = sysConfig.offerBadge;
     if(document.getElementById('offer-title')) document.getElementById('offer-title').innerText = sysConfig.offerTitle;
     if(document.getElementById('offer-desc')) document.getElementById('offer-desc').innerText = sysConfig.offerDesc;
-    if(document.getElementById('offer-bg')) document.getElementById('offer-bg').style.backgroundImage = `url(${sysConfig.offerImg})`;
     if(document.getElementById('contact-phone-disp')) document.getElementById('contact-phone-disp').innerText = sysConfig.contactPhone;
     if(document.getElementById('contact-email-disp')) document.getElementById('contact-email-disp').innerText = sysConfig.contactEmail;
     if(document.getElementById('contact-address-disp')) document.getElementById('contact-address-disp').innerText = sysConfig.contactAddress;
@@ -109,7 +107,6 @@ function applySystemConfigToUI() {
         document.getElementById('conf-discount').value = sysConfig.discountPercent || 0;
     }
 
-    // Custom Socials
     document.querySelectorAll('.dynamic-extra-social').forEach(el => el.remove()); 
     const footerContainer = document.getElementById('footer-social-links');
     if (footerContainer && sysConfig.customSocials) {
@@ -120,7 +117,6 @@ function applySystemConfigToUI() {
     }
     if(window.renderAdminCustomSocials) renderAdminCustomSocials();
 
-    // Custom Payments
     const paySelect = document.getElementById('pay-method');
     if (paySelect) {
         let options = `<option value="" selected disabled>Select Payment Method</option><option value="Cash on Delivery">Cash on Delivery</option>`;
@@ -406,8 +402,24 @@ window.toggleMobileMenu = function() { const menu = document.getElementById('mob
 
 
 // ==========================================
-// 🛡️ UNBREAKABLE PASSWORD AUTHENTICATION
+// 🛡️ UNBREAKABLE PASSWORD PIPELINE WITH VISIBILITY
 // ==========================================
+
+window.togglePasswordVisibility = function(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (input && icon) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    }
+}
 
 function clientValidatePassword(password) {
     if (!password || password.length < 12) return false;
@@ -453,7 +465,13 @@ window.checkAdminAccess = async function() {
 window.authCreateMasterPassword = async function(e) {
     e.preventDefault();
     const pass = document.getElementById('auth-setup-pass').value;
+    const confirmPass = document.getElementById('auth-setup-confirm').value;
     const btn = document.getElementById('btn-auth-setup');
+
+    if (pass !== confirmPass) {
+        alert("❌ Error: Passwords do not match! Dono boxes mein ek jaisa password type karein.");
+        return;
+    }
 
     if (!clientValidatePassword(pass)) {
         alert("❌ Denied: Password must be 12 characters and include a Capital letter, a lowercase letter, a number, and a symbol (@, #, or .)");
@@ -576,7 +594,9 @@ window.addNewProduct = async function(e) {
         }; img.src = event.target.result; 
     }; reader.readAsDataURL(file); 
 }
-window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
+
 window.deleteProduct = async function(id) { if(confirm("Delete item?")) { await fetch(`${CLOUDFLARE_API_URL}/products/${id}`, { method: 'DELETE', headers: getSecureHeaders() }); loadCloudflareData(); } }
 window.renderAdminProducts = function() { const log = document.getElementById('admin-product-log'); if(!log) return; log.innerHTML = allProducts.map(p => `<div class="bg-slate-50 p-2 md:p-3 rounded-xl flex justify-between items-center border text-[10px] md:text-xs font-bold"><div class="flex items-center gap-2 md:gap-3"><img src="${p.img}" class="w-8 h-8 md:w-10 md:h-10 object-cover rounded"><div><h4>${p.name}</h4><span class="text-orange-600">Rs. ${p.price}</span></div></div><button onclick="deleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fa-solid fa-trash"></i></button></div>`).join(''); }
+
+window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; document.body.style.overflow = 'auto'; }
