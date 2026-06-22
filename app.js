@@ -1,7 +1,7 @@
 // ==========================================
 // 1. CLOUDFLARE CONFIGURATION & SECURITY
 // ==========================================
-const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev";
+const CLOUDFLARE_API_URL = "https://luxe-api.madnisialpro.workers.dev"; // UPDATE WITH YOUR URL
 
 // ==========================================
 // 2. STATE & GLOBAL CONFIGURATION
@@ -20,8 +20,8 @@ let sysConfig = {
     deliveryCharge: 0,
     discountPercent: 0,
     receiverEmail: 'madnisialpro@gmail.com',
-    customSocials: [], // 🔥 DYNAMIC SOCIALS
-    paymentMethods: [] // 🔥 DYNAMIC PAYMENTS
+    customSocials: [], 
+    payEasypaisa: '', payJazzcash: '', bankName: '', bankNumber: ''
 };
 
 const savedConfig = localStorage.getItem('luxe_sysConfig');
@@ -44,12 +44,7 @@ function hideLoader() {
     }
 }
 
-function getSecureHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'X-Admin-Token': sessionStorage.getItem('admin_session_token') || ''
-    };
-}
+function getSecureHeaders() { return { 'Content-Type': 'application/json', 'X-Admin-Token': sessionStorage.getItem('admin_session_token') || '' }; }
 
 async function loadCloudflareData() {
     try {
@@ -65,7 +60,7 @@ async function loadCloudflareData() {
             allProducts = fetchedProducts.filter(p => p.id !== 'SYSTEM_CONFIG');
             
             applySystemConfigToUI();
-            updateNavCategories();
+            updateCategoriesUI();
             applyFilters(); renderAdminProducts(); 
         }
         if (sessionStorage.getItem('admin_session_token')) { loadCloudflareOrdersSecure(); }
@@ -109,140 +104,97 @@ function applySystemConfigToUI() {
         document.getElementById('conf-social-wa').value = sysConfig.socialWhatsapp || '';
         document.getElementById('conf-social-tt').value = sysConfig.socialTiktok || '';
         document.getElementById('conf-social-yt').value = sysConfig.socialYoutube || '';
+        
+        document.getElementById('conf-pay-ep').value = sysConfig.payEasypaisa || '';
+        document.getElementById('conf-pay-jc').value = sysConfig.payJazzcash || '';
+        document.getElementById('conf-bank-name').value = sysConfig.bankName || '';
+        document.getElementById('conf-bank-number').value = sysConfig.bankNumber || '';
+
         document.getElementById('conf-delivery').value = sysConfig.deliveryCharge || 0;
         document.getElementById('conf-discount').value = sysConfig.discountPercent || 0;
         document.getElementById('conf-sys-email').value = sysConfig.receiverEmail || 'madnisialpro@gmail.com';
     }
 
-    // 🔥 RENDER CUSTOM SOCIAL LINKS
+    // 🔥 CUSTOM SOCIAL LINKS
     document.querySelectorAll('.dynamic-extra-social').forEach(el => el.remove()); 
     const footerContainer = document.getElementById('footer-social-links');
     if (footerContainer && sysConfig.customSocials) {
         sysConfig.customSocials.forEach(social => {
-            const iconClass = social.icon === 'fa-link' ? 'fa-solid' : 'fa-brands';
-            const linkHtml = `<a href="${social.url}" target="_blank" class="dynamic-extra-social w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 text-white transition-all"><i class="${iconClass} ${social.icon}"></i></a>`;
+            const linkHtml = `<a href="${social.url}" target="_blank" class="dynamic-extra-social px-4 py-2 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-500 text-white font-bold text-xs transition-all"><i class="fa-solid fa-link mr-2"></i> ${social.name}</a>`;
             footerContainer.insertAdjacentHTML('beforeend', linkHtml);
         });
     }
     if(window.renderAdminCustomSocials) renderAdminCustomSocials();
 
-    // 🔥 RENDER DYNAMIC PAYMENTS
+    // 🔥 CHECKOUT PAYMENT DROPDOWN
     const paySelect = document.getElementById('pay-method');
     if (paySelect) {
-        paySelect.innerHTML = `<option value="" selected disabled>Select Payment Method</option><option value="Cash on Delivery">Cash on Delivery</option>`;
-        if(sysConfig.paymentMethods) {
-            sysConfig.paymentMethods.forEach(p => {
-                paySelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-            });
-        }
+        let options = `<option value="" selected disabled>Select Payment Method</option><option value="Cash on Delivery">Cash on Delivery</option>`;
+        if (sysConfig.payEasypaisa) options += `<option value="Easypaisa">Easypaisa</option>`;
+        if (sysConfig.payJazzcash) options += `<option value="Jazz Cash">Jazz Cash</option>`;
+        if (sysConfig.bankName && sysConfig.bankNumber) options += `<option value="Bank">${sysConfig.bankName}</option>`;
+        paySelect.innerHTML = options;
     }
-    if(window.renderAdminPayments) renderAdminPayments();
 }
 
-// 🔥 DYNAMIC NAVBAR CATEGORIES
-window.updateNavCategories = function() {
+// 🔥 DYNAMIC CATEGORIES FOR NAVBAR AND ADMIN SELECT
+window.updateCategoriesUI = function() {
+    const defaults = ['Rings', 'Necklaces', 'Bracelets', 'Earrings', 'Watches', 'Sets'];
+    const dynamicCats = [...new Set(allProducts.map(p => p.cat).filter(c => c && c !== 'System' && !defaults.includes(c)))];
+
+    // 1. Update Navbar
     const navContainer = document.getElementById('dynamic-nav-categories');
-    if (!navContainer) return;
-    const uniqueCategories = [...new Set(allProducts.map(p => p.cat).filter(c => c && c !== 'System'))];
-    let navHTML = '';
-    uniqueCategories.forEach(category => {
-        navHTML += `<a href="#" onclick="filterByCategory('${category}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors">${category}</a>`;
-    });
-    navHTML += `
-        <div class="border-t border-slate-100 my-1"></div>
-        <a href="#" onclick="filterByCategory('All')" class="block px-6 py-3 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors">View All Jewelry</a>
-    `;
-    navContainer.innerHTML = navHTML;
+    if (navContainer) {
+        let navHTML = '';
+        defaults.forEach(c => navHTML += `<a href="#" onclick="filterByCategory('${c}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors">${c}</a>`);
+        dynamicCats.forEach(c => navHTML += `<a href="#" onclick="filterByCategory('${c}')" class="block px-6 py-3 hover:bg-slate-50 hover:text-orange-600 transition-colors text-orange-700 font-bold">${c}</a>`);
+        navHTML += `<div class="border-t border-slate-100 my-1"></div><a href="#" onclick="filterByCategory('All')" class="block px-6 py-3 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-colors">View All Jewelry</a>`;
+        navContainer.innerHTML = navHTML;
+    }
+
+    // 2. Update Admin Add Product Form Select
+    const adminSelect = document.getElementById('new-p-cat');
+    if (adminSelect) {
+        let adminHTML = `<option value="" disabled selected>Select Category</option>`;
+        defaults.forEach(c => adminHTML += `<option value="${c}">${c}</option>`);
+        dynamicCats.forEach(c => adminHTML += `<option value="${c}">${c}</option>`);
+        adminHTML += `<option value="Custom" class="font-black text-orange-600">+ Add New Category</option>`;
+        adminSelect.innerHTML = adminHTML;
+    }
 };
 
-// 🔥 CHECK CUSTOM CATEGORY SELECTION
 window.checkCustomCategory = function() {
     const select = document.getElementById('new-p-cat');
     const customInput = document.getElementById('custom-cat-input');
-    if (select.value === 'Custom') {
-        customInput.classList.remove('hidden');
-        customInput.required = true;
-        customInput.focus();
-    } else {
-        customInput.classList.add('hidden');
-        customInput.required = false;
-        customInput.value = '';
-    }
+    if (select.value === 'Custom') { customInput.classList.remove('hidden'); customInput.required = true; customInput.focus(); } 
+    else { customInput.classList.add('hidden'); customInput.required = false; customInput.value = ''; }
 }
 
-// 🔥 ADD CUSTOM SOCIAL LINK
+// 🔥 ADD CUSTOM SOCIAL LINK (NAME & URL)
 window.addCustomSocial = async function(e) {
     e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    btn.innerHTML = 'Adding...'; btn.disabled = true;
-    const icon = document.getElementById('new-social-icon').value;
+    const btn = e.target.querySelector('button[type="submit"]'); btn.innerHTML = 'Adding...'; btn.disabled = true;
+    const name = document.getElementById('new-social-name').value;
     const url = document.getElementById('new-social-url').value;
     if(!sysConfig.customSocials) sysConfig.customSocials = [];
-    sysConfig.customSocials.push({ id: Date.now(), icon: icon, url: url });
+    sysConfig.customSocials.push({ id: Date.now(), name: name, url: url });
     try {
         await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
-        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
-        e.target.reset(); applySystemConfigToUI();
-    } catch(err) { alert("Error adding link."); } 
-    finally { btn.innerHTML = 'Add Link'; btn.disabled = false; }
+        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); e.target.reset(); applySystemConfigToUI();
+    } catch(err) { alert("Error adding link."); } finally { btn.innerHTML = 'Add Link'; btn.disabled = false; }
 }
 
 window.deleteCustomSocial = async function(id) {
     if(!confirm("Remove this link?")) return;
     sysConfig.customSocials = sysConfig.customSocials.filter(link => link.id !== id);
-    try {
-        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
-        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI();
-    } catch(err) { alert("Error removing link."); }
+    try { await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) }); localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI(); } catch(err) {}
 }
 
 window.renderAdminCustomSocials = function() {
-    const container = document.getElementById('admin-custom-socials-list');
-    if(!container) return;
+    const container = document.getElementById('admin-custom-socials-list'); if(!container) return;
     if(!sysConfig.customSocials || sysConfig.customSocials.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 font-bold text-center py-2">No extra links.</p>`; return; }
-    container.innerHTML = sysConfig.customSocials.map(link => {
-        const iconType = link.icon === 'fa-link' ? 'fa-solid' : 'fa-brands';
-        return `<div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-slate-50 text-slate-600 rounded flex items-center justify-center"><i class="${iconType} ${link.icon}"></i></div><p class="text-xs text-slate-500 truncate w-40">${link.url}</p></div><button onclick="deleteCustomSocial(${link.id})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div>`;
-    }).join('');
+    container.innerHTML = sysConfig.customSocials.map(link => `<div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-slate-50 text-slate-600 rounded flex items-center justify-center"><i class="fa-solid fa-link"></i></div><div><p class="text-xs font-bold text-slate-800">${link.name}</p><p class="text-[10px] text-slate-500 truncate w-32">${link.url}</p></div></div><button onclick="deleteCustomSocial(${link.id})" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button></div>`).join('');
 }
-
-// 🔥 ADD DYNAMIC PAYMENT METHOD
-window.addPaymentMethod = async function(e) {
-    e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    btn.innerHTML = 'Adding...'; btn.disabled = true;
-    const name = document.getElementById('new-pay-name').value;
-    const number = document.getElementById('new-pay-number').value;
-    if(!sysConfig.paymentMethods) sysConfig.paymentMethods = [];
-    sysConfig.paymentMethods.push({ id: Date.now(), name: name, number: number });
-    try {
-        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
-        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig));
-        e.target.reset(); applySystemConfigToUI();
-    } catch(err) { alert("Error adding method."); } 
-    finally { btn.innerHTML = 'Add Method'; btn.disabled = false; }
-}
-
-window.deletePaymentMethod = async function(id) {
-    if(!confirm("Remove this payment method?")) return;
-    sysConfig.paymentMethods = sysConfig.paymentMethods.filter(p => p.id !== id);
-    try {
-        await fetch(`${CLOUDFLARE_API_URL}/products`, { method: 'POST', headers: getSecureHeaders(), body: JSON.stringify(sysConfig) });
-        localStorage.setItem('luxe_sysConfig', JSON.stringify(sysConfig)); applySystemConfigToUI();
-    } catch(err) { alert("Error removing method."); }
-}
-
-window.renderAdminPayments = function() {
-    const container = document.getElementById('admin-payment-list');
-    if(!container) return;
-    if(!sysConfig.paymentMethods || sysConfig.paymentMethods.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 font-bold text-center py-2">No custom methods added.</p>`; return; }
-    container.innerHTML = sysConfig.paymentMethods.map(p => `
-        <div class="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
-            <div><p class="text-sm font-bold text-slate-800">${p.name}</p><p class="text-[11px] font-mono text-slate-500 tracking-wider">${p.number}</p></div>
-            <button onclick="deletePaymentMethod(${p.id})" class="text-slate-400 hover:text-red-500 p-2"><i class="fa-solid fa-trash"></i></button>
-        </div>`).join('');
-}
-
 
 window.renderProducts = function(data) {
     const grid = document.getElementById('product-grid'); if(!grid) return;
@@ -258,7 +210,25 @@ window.renderProducts = function(data) {
         </div>
     `).join('');
 }
-window.applyFilters = function() { let searchVal = document.getElementById('hero-search') ? document.getElementById('hero-search').value.toLowerCase() : ""; let filtered = [...allProducts]; if (currentCategory !== "All") filtered = filtered.filter(p => p.cat === currentCategory); if (searchVal) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal)); renderProducts(filtered); }
+
+// 🔥 FILTERS (SEARCH, PRICE RANGE, SORTING)
+window.applyFilters = function() { 
+    let searchVal = document.getElementById('hero-search') ? document.getElementById('hero-search').value.toLowerCase() : ""; 
+    let minPrice = parseFloat(document.getElementById('filter-min-price').value) || 0;
+    let maxPrice = parseFloat(document.getElementById('filter-max-price').value) || Infinity;
+    let sortLogic = document.getElementById('sort-logic').value;
+
+    let filtered = [...allProducts]; 
+    if (currentCategory !== "All") filtered = filtered.filter(p => p.cat === currentCategory); 
+    if (searchVal) filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal)); 
+    filtered = filtered.filter(p => p.price >= minPrice && p.price <= maxPrice);
+
+    if (sortLogic === 'low') filtered.sort((a, b) => a.price - b.price);
+    if (sortLogic === 'high') filtered.sort((a, b) => b.price - a.price);
+
+    renderProducts(filtered); 
+}
+
 window.filterByCategory = function(cat) { currentCategory = cat; document.getElementById('current-category-label').innerText = cat === "All" ? "Showing All Jewelry" : `Category: ${cat}`; if(document.getElementById('hero-search')) document.getElementById('hero-search').value = ""; applyFilters(); document.getElementById('products').scrollIntoView(); }
 window.filterItemsFromHero = function() { currentCategory = "All"; document.getElementById('current-category-label').innerText = "Search Results"; applyFilters(); }
 window.reveal = function() { document.querySelectorAll(".reveal").forEach(el => { if (el.getBoundingClientRect().top < window.innerHeight - 50) el.classList.add("active"); }); }
@@ -292,29 +262,21 @@ window.togglePaymentProof = function() {
     const methodId = document.getElementById('pay-method').value; 
     const proofContainer = document.getElementById('pay-proof-container'); 
     const detailsBox = document.getElementById('payment-details-box'); 
+    const nameDisplay = document.getElementById('pay-method-name-display');
     const numDisplay = document.getElementById('pay-number-display');
     
     if(!methodId || methodId === "Cash on Delivery") { 
         proofContainer.classList.add('hidden'); proofContainer.style.maxHeight = '0px'; proofContainer.style.opacity = '0'; 
         detailsBox.classList.add('hidden'); detailsBox.style.maxHeight = '0px'; detailsBox.style.opacity = '0';
-        detailsBox.classList.remove('payment-dropdown-anim');
         return; 
     } 
-    
-    const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
-    if(!selectedMethod) return;
 
     proofContainer.classList.remove('hidden'); detailsBox.classList.remove('hidden'); 
-    detailsBox.classList.remove('payment-dropdown-anim');
-    void detailsBox.offsetWidth;
-    detailsBox.classList.add('payment-dropdown-anim');
+    setTimeout(() => { proofContainer.style.maxHeight = '200px'; proofContainer.style.opacity = '1'; detailsBox.style.maxHeight = '200px'; detailsBox.style.opacity = '1'; }, 10); 
     
-    setTimeout(() => { 
-        proofContainer.style.maxHeight = '200px'; proofContainer.style.opacity = '1'; 
-        detailsBox.style.maxHeight = '200px'; detailsBox.style.opacity = '1'; 
-    }, 10); 
-    
-    numDisplay.innerText = selectedMethod.number; 
+    if (methodId === "Easypaisa") { nameDisplay.innerText = "Easypaisa"; numDisplay.innerText = sysConfig.payEasypaisa; }
+    else if (methodId === "Jazz Cash") { nameDisplay.innerText = "Jazz Cash"; numDisplay.innerText = sysConfig.payJazzcash; }
+    else if (methodId === "Bank") { nameDisplay.innerText = sysConfig.bankName; numDisplay.innerText = sysConfig.bankNumber; }
 }
 
 window.copyPaymentNumber = function() { const txt = document.getElementById('pay-number-display').innerText; navigator.clipboard.writeText(txt).then(() => { alert("Copied! ✅"); }); }
@@ -327,13 +289,12 @@ window.submitOrder = async function() {
     const methodId = document.getElementById('pay-method').value; if(!cName || !cPhone || !cCity || !cAddress || !methodId) { alert("Please complete shipping and payment selection."); return; }
     
     let pMethodName = "Cash on Delivery";
-    if (methodId !== "Cash on Delivery") {
-        const selectedMethod = (sysConfig.paymentMethods || []).find(p => String(p.id) === String(methodId));
-        if(selectedMethod) pMethodName = selectedMethod.name;
-    }
+    if (methodId === "Easypaisa") pMethodName = "Easypaisa";
+    else if (methodId === "Jazz Cash") pMethodName = "Jazz Cash";
+    else if (methodId === "Bank") pMethodName = sysConfig.bankName;
 
     let paymentProofBase64 = null;
-    if (pMethodName !== "Cash on Delivery") { 
+    if (methodId !== "Cash on Delivery") { 
         const fileInput = document.getElementById('pay-proof-img'); 
         if (fileInput.files.length === 0) { alert("Please upload payment screenshot."); return; } 
         paymentProofBase64 = await new Promise((resolve) => { const r = new FileReader(); r.onload = (e) => resolve(e.target.result); r.readAsDataURL(fileInput.files[0]); }); 
@@ -383,7 +344,6 @@ window.submitContactForm = async function(e) {
     try {
         const res = await fetch(`${CLOUDFLARE_API_URL}/contact-msg`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, message }) });
         const data = await res.json();
-        
         if (res.ok) { alert("Message Sent! 💎 We have forwarded it directly to the admin."); document.getElementById('public-contact-form').reset(); } 
         else { alert("Failed to send message: " + data.error); }
     } catch (err) { alert("Network Error. Cannot reach server."); } 
@@ -435,6 +395,12 @@ window.saveSystemConfig = async function(e, section) {
     else if (section === 'pricing') { sysConfig.deliveryCharge = Number(document.getElementById('conf-delivery').value) || 0; sysConfig.discountPercent = Number(document.getElementById('conf-discount').value) || 0; }
     else if (section === 'contact') { sysConfig.contactPhone = document.getElementById('conf-contact-phone').value; sysConfig.contactEmail = document.getElementById('conf-contact-email').value; sysConfig.contactAddress = document.getElementById('conf-contact-address').value; }
     else if (section === 'social') { sysConfig.socialFacebook = document.getElementById('conf-social-fb').value; sysConfig.socialInstagram = document.getElementById('conf-social-ig').value; sysConfig.socialWhatsapp = document.getElementById('conf-social-wa').value; sysConfig.socialTiktok = document.getElementById('conf-social-tt').value; sysConfig.socialYoutube = document.getElementById('conf-social-yt').value; }
+    else if (section === 'payment') { 
+        sysConfig.payEasypaisa = document.getElementById('conf-pay-ep').value; 
+        sysConfig.payJazzcash = document.getElementById('conf-pay-jc').value; 
+        sysConfig.bankName = document.getElementById('conf-bank-name').value; 
+        sysConfig.bankNumber = document.getElementById('conf-bank-number').value; 
+    }
     else if (section === 'offer') {
         sysConfig.offerBadge = document.getElementById('conf-offer-badge').value; sysConfig.offerTitle = document.getElementById('conf-offer-title').value; sysConfig.offerDesc = document.getElementById('conf-offer-desc').value;
         const fileInput = document.getElementById('conf-offer-img');
@@ -510,7 +476,7 @@ window.downloadCustomerDetailsImage = function(id) {
     setTimeout(() => { html2canvas(document.getElementById('details-export-area'), { scale: 2 }).then(canvas => { const link = document.createElement('a'); link.download = `Client-${o.id}.png`; link.href = canvas.toDataURL(); link.click(); }); }, 150);
 }
 
-// 🔥 ADD PRODUCT LOGIC
+// 🔥 ADD PRODUCT LOGIC (WITH CUSTOM CATEGORY)
 window.addNewProduct = async function(e) { 
     e.preventDefault(); const btn = document.getElementById('add-btn-submit'); btn.disabled = true; const originalText = btn.innerHTML; btn.innerHTML = 'Publishing...';
     
